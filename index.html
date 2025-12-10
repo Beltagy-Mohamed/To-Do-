@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beltagy To Do 🚀</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        creative: ['"Dancing Script"', 'cursive'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Dancing+Script:wght@700&display=swap"
+        rel="stylesheet">
+    <!-- Icons (Lucide via UNPKG for simplicity in vanilla) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-slate-950 text-slate-200 min-h-[100dvh] overflow-x-hidden font-sans selection:bg-indigo-500/30">
+
+    <!-- Background Layers -->
+    <div class="fixed inset-0 z-0 bg-slate-950">
+        <div
+            class="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]">
+        </div>
+        <div
+            class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-indigo-500/20 blur-[120px] rounded-full pointer-events-none">
+        </div>
+    </div>
+
+    <!-- Floating Emojis Container -->
+    <div id="emoji-container" class="fixed inset-0 z-0 pointer-events-none overflow-hidden"></div>
+
+    <!-- Main Content -->
+    <main class="relative z-10 w-full max-w-4xl mx-auto p-4 flex flex-col items-center min-h-screen pt-12 pb-24">
+
+        <!-- Header -->
+        <div class="w-full text-center mb-6 relative group">
+            <div class="absolute right-0 top-0">
+                <button onclick="toggleStats()"
+                    class="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                    title="View Stats">
+                    <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <h1
+                class="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 mb-2 inline-block tracking-tight">
+                Beltagy To Do 🚀
+            </h1>
+
+            <div class="mt-2 relative max-w-md mx-auto">
+                <input type="text" id="app-name-input"
+                    class="bg-transparent border-none text-center text-xl md:text-2xl text-pink-300 focus:ring-0 focus:outline-none placeholder:text-white/10 w-full font-creative cursor-pointer hover:text-pink-200 transition-colors"
+                    placeholder="Name your workspace..." style="text-shadow: 0 0 15px rgba(236, 72, 153, 0.3);">
+            </div>
+        </div>
+
+        <!-- Input Area (Main Focus) -->
+        <div class="w-full max-w-2xl relative group mb-8 z-20">
+            <div
+                class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-2xl opacity-30 group-hover:opacity-60 transition duration-500 blur">
+            </div>
+            <div class="relative flex items-center bg-slate-900 rounded-xl p-2 border border-white/10 shadow-2xl">
+                <input type="text" id="todo-input"
+                    class="flex-1 bg-transparent border-none text-white placeholder:text-slate-500 focus:ring-0 focus:outline-none h-14 px-4 text-xl"
+                    placeholder="What's your next win?" onkeydown="handleInputKey(event)">
+                <button onclick="addTodo()"
+                    class="p-4 bg-white text-slate-900 rounded-lg hover:bg-slate-200 transition-colors shrink-0">
+                    <i data-lucide="plus" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Controls Row (Mood & View) -->
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4 w-full max-w-2xl mb-8">
+            <!-- Mood Selector -->
+            <div class="flex flex-wrap justify-center gap-2" id="mood-selector">
+                <!-- Buttons injected by JS -->
+            </div>
+
+            <!-- View Switcher -->
+            <div class="flex p-1 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+                <button onclick="switchView('Daily')" id="btn-daily"
+                    class="px-5 py-1.5 rounded-lg text-xs font-medium transition-all bg-indigo-500 text-white shadow-lg shadow-indigo-500/20">Daily</button>
+                <button onclick="switchView('Weekly')" id="btn-weekly"
+                    class="px-5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white">Weekly</button>
+            </div>
+        </div>
+
+        <!-- Todo List -->
+        <div id="todo-list" class="w-full max-w-2xl space-y-3">
+            <!-- Items injected by JS -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden flex-col items-center justify-center py-12 text-slate-500 text-center">
+            <i data-lucide="sparkles" class="w-12 h-12 mb-4 opacity-20"></i>
+            <p class="text-lg font-medium">All clear for now!</p>
+            <p class="text-sm">Enjoy the space or add a new goal.</p>
+        </div>
+
+    </main>
+
+    <!-- Modals -->
+
+    <!-- Stats Modal -->
+    <div id="stats-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="toggleStats()"></div>
+        <div class="absolute inset-0 md:inset-10 flex items-center justify-center p-4">
+            <div
+                class="w-full max-w-5xl bg-slate-900 border border-white/10 rounded-none md:rounded-3xl shadow-2xl flex flex-col h-full md:h-auto md:max-h-[90vh] overflow-hidden">
+                <div class="p-6 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
+                    <h2 class="text-2xl font-bold flex items-center gap-3">
+                        <i data-lucide="trending-up" class="text-indigo-400"></i> Your Analytics
+                    </h2>
+                    <button onclick="toggleStats()" class="p-2 hover:bg-white/10 rounded-full"><i data-lucide="x"
+                            class="w-6 h-6"></i></button>
+                </div>
+
+                <div class="p-6 overflow-y-auto custom-scrollbar flex-1">
+                    <!-- HUD -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div class="bg-white/5 rounded-2xl p-4 flex items-center gap-4 border border-white/5">
+                            <div class="p-3 bg-yellow-500/20 rounded-full text-yellow-500"><i data-lucide="trophy"></i>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-black" id="stat-xp">0 XP</div>
+                                <div class="text-xs uppercase tracking-wider text-slate-400">Total Score</div>
+                            </div>
+                        </div>
+                        <div class="bg-white/5 rounded-2xl p-4 flex items-center gap-4 border border-white/5">
+                            <div class="p-3 bg-emerald-500/20 rounded-full text-emerald-500"><i
+                                    data-lucide="target"></i></div>
+                            <div>
+                                <div class="text-2xl font-black" id="stat-completed">0</div>
+                                <div class="text-xs uppercase tracking-wider text-slate-400">Tasks Done</div>
+                            </div>
+                        </div>
+                        <div class="bg-white/5 rounded-2xl p-4 flex items-center gap-4 border border-white/5">
+                            <div class="p-3 bg-blue-500/20 rounded-full text-blue-500"><i data-lucide="calendar"></i>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-black" id="stat-rate">0%</div>
+                                <div class="text-xs uppercase tracking-wider text-slate-400">Completion Rate</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-black/20 p-4 rounded-3xl border border-white/5">
+                            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Focus
+                                Distribution</h3>
+                            <canvas id="barChart"></canvas>
+                        </div>
+                        <div class="bg-black/20 p-4 rounded-3xl border border-white/5">
+                            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Productivity
+                                Trend</h3>
+                            <canvas id="lineChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Focus Timer Modal -->
+    <div id="timer-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+            <div class="w-full max-w-md relative flex flex-col items-center">
+                <!-- Close -->
+                <button onclick="closeTimer()"
+                    class="absolute top-0 right-0 p-4 text-slate-500 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-8 h-8"></i>
+                </button>
+
+                <!-- Task Title -->
+                <h2 id="timer-task-text" class="text-2xl font-bold text-white mb-2 text-center mt-12">Task Name</h2>
+
+                <!-- AI Encouragement -->
+                <div class="h-12 flex items-center justify-center mb-8 w-full">
+                    <p id="timer-quote"
+                        class="text-sm font-medium bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 text-center animate-pulse">
+                        Loading encouragement...
+                    </p>
+                </div>
+
+                <!-- Timer Ring -->
+                <div class="relative w-64 h-64 flex items-center justify-center mb-12">
+                    <svg class="absolute inset-0 w-full h-full -rotate-90 transform">
+                        <circle cx="128" cy="128" r="120" stroke="currentColor" stroke-width="8" fill="transparent"
+                            class="text-slate-800" />
+                        <circle id="timer-progress-ring" cx="128" cy="128" r="120" stroke="currentColor"
+                            stroke-width="8" fill="transparent"
+                            class="text-white transition-all duration-1000 ease-linear" stroke-dasharray="753.98"
+                            stroke-dashoffset="0" stroke-linecap="round" />
+                    </svg>
+                    <div id="timer-display"
+                        class="text-6xl font-black tabular-nums tracking-tighter text-white relative z-10">
+                        25:00
+                    </div>
+                    <!-- Background Glow -->
+                    <div id="timer-glow" class="absolute inset-0 blur-[80px] opacity-30 bg-indigo-500"></div>
+                </div>
+
+                <!-- Controls -->
+                <button onclick="toggleTimerState()" id="timer-toggle-btn"
+                    class="w-20 h-20 rounded-full bg-white text-slate-900 flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-white/20">
+                    <i data-lucide="play" class="w-8 h-8 fill-current translate-x-1"></i>
+                </button>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Dock (Bottom) -->
+    <div
+        class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-full p-2 shadow-2xl flex items-center gap-2 scale-90 md:scale-100 hover:scale-105 transition-transform duration-300">
+        <div id="category-dock" class="flex items-center gap-1">
+            <!-- Injected by JS -->
+        </div>
+        <div class="w-[1px] h-6 bg-white/20 mx-2"></div>
+        <button onclick="logout()"
+            class="p-3 rounded-full hover:bg-white/10 text-slate-400 hover:text-red-400 transition-colors"
+            title="Log Out">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 z-[60] bg-slate-950 flex items-center justify-center p-4">
+        <div
+            class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-slate-950">
+        </div>
+
+        <div
+            class="relative z-10 w-full max-w-md bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+            <div class="text-center mb-8">
+                <h1
+                    class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400 mb-2 font-creative">
+                    Welcome Back
+                </h1>
+                <p class="text-slate-400">Sign in to sync your creative space.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Username</label>
+                    <input type="text" id="auth-username"
+                        class="w-full bg-slate-800/50 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-purple-500 focus:outline-none transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
+                    <input type="password" id="auth-password"
+                        class="w-full bg-slate-800/50 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-purple-500 focus:outline-none transition-all">
+                </div>
+
+                <button onclick="handleLogin()"
+                    class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition-all transform hover:scale-[1.02]">
+                    Enter Workspace 🚀
+                </button>
+
+                <div class="flex items-center gap-4 my-4">
+                    <div class="h-[1px] flex-1 bg-white/10"></div>
+                    <span class="text-xs text-slate-600">OR</span>
+                    <div class="h-[1px] flex-1 bg-white/10"></div>
+                </div>
+
+                <button onclick="handleRegister()"
+                    class="w-full bg-white/5 hover:bg-white/10 text-slate-300 font-medium py-3 rounded-xl border border-white/10 transition-all">
+                    Create New Account
+                </button>
+                <p id="auth-error" class="text-red-400 text-center text-sm mt-4 hidden"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+
+</html>
