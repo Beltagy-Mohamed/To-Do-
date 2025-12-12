@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beltagy To Do 🚀</title>
+    <title>B-Task 🚀</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -15,6 +15,8 @@
                         sans: ['Inter', 'sans-serif'],
                         creative: ['"Dancing Script"', 'cursive'],
                         arabic: ['Cairo', 'sans-serif'],
+                        athkar: ['Tajawal', 'sans-serif'],
+                        quran: ['Amiri', 'serif'],
                     },
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -25,7 +27,7 @@
     </script>
     <!-- Fonts -->
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Dancing+Script:wght@700&family=Cairo:wght@400;700&family=Caveat:wght@700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Dancing+Script:wght@700&family=Cairo:wght@400;700&family=Tajawal:wght@400;500;700&family=Amiri:wght@400;700;900&family=Caveat:wght@700&display=swap"
         rel="stylesheet">
     <!-- Icons (Lucide via UNPKG for simplicity in vanilla) -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -67,8 +69,8 @@
             </div>
 
             <h1
-                class="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 mb-2 inline-block tracking-tight">
-                Beltagy To Do 🚀
+                class="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-200 via-emerald-200 to-cyan-200 mb-2 inline-block tracking-tight drop-shadow-sm">
+                B-Task 🚀
             </h1>
 
             <div class="mt-2 relative max-w-md mx-auto">
@@ -102,13 +104,18 @@
             </div>
 
             <!-- View Switcher -->
-            <div class="flex p-1 bg-white/5 backdrop-blur-sm rounded-xl border border-white/10">
+            <div
+                class="flex overflow-x-auto max-w-full touch-pan-x bg-slate-800/50 p-1 rounded-xl backdrop-blur-sm border border-white/5 scrollbar-hide">
                 <button onclick="switchView('Daily')" id="btn-daily"
-                    class="px-5 py-1.5 rounded-lg text-xs font-medium transition-all bg-indigo-500 text-white shadow-lg shadow-indigo-500/20">Daily</button>
+                    class="shrink-0 px-5 py-1.5 rounded-lg text-xs font-medium transition-all bg-indigo-500 text-white shadow-lg shadow-indigo-500/20">Daily</button>
                 <button onclick="switchView('Weekly')" id="btn-weekly"
-                    class="px-5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white">Weekly</button>
+                    class="shrink-0 px-5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white">Weekly</button>
                 <button onclick="switchView('Athkar')" id="btn-athkar"
-                    class="px-5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white">Athkar</button>
+                    class="shrink-0 px-5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white">Athkar</button>
+                <button onclick="switchView('Tasbih')" id="btn-tasbih"
+                    class="shrink-0 px-5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white">Tasbih</button>
+                <button onclick="switchView('Kahf')" id="btn-kahf"
+                    class="shrink-0 px-5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white">Al-Kahf</button>
             </div>
         </div>
 
@@ -307,8 +314,8 @@
     </div>
 
     <!-- App Logic -->
-    <!-- App Logic -->
-    <script type="module" src="app.js"></script>
+    <!-- Main Logic using standard script (No Module) -->
+    <script src="app.js"></script>
 </body>
 
 </html>
