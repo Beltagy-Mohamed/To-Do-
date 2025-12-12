@@ -58,3 +58,27 @@
 .font-creative {
     font-family: 'Dancing Script', cursive;
 }
+
+/* New Fonts */
+.font-arabic {
+    font-family: 'Cairo', sans-serif;
+}
+
+.font-hand {
+    font-family: 'Caveat', cursive;
+}
+
+/* RTL Support */
+[dir="rtl"] {
+    text-align: right;
+}
+
+[dir="rtl"] .font-creative {
+    font-family: 'Caveat', cursive;
+    /* Better creative font for "generic" arabic feel if needed, or keep Cairo */
+}
+
+/* Tailwind-like utils for RTL if needed */
+[dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
+}
