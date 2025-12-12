@@ -153,7 +153,16 @@ const TRANSLATIONS = {
         Health: "Health",
         Ideas: "Ideas",
         tasbih: "Tasbih",
-        kahf: "Al-Kahf"
+        kahf: "Al-Kahf",
+        // Dashboard
+        tabTasks: "Tasks",
+        tabWorship: "Worship",
+        kahfTracker: "Surat Al-Kahf Tracker",
+        tasbihActivity: "Tasbih Activity (Last 7 Days)",
+        completeSession: "Complete Session",
+        sessionCompleted: "Session Completed",
+        markRead: "Mark as Read",
+        completedFriday: "Completed This Friday"
     },
     ar: {
         title: "B-Task 🚀",
@@ -197,7 +206,16 @@ const TRANSLATIONS = {
         Health: "صحة",
         Ideas: "أفكار",
         tasbih: "السبحة",
-        kahf: "الكهف"
+        kahf: "الكهف",
+        // Dashboard
+        tabTasks: "المهام",
+        tabWorship: "العبادات",
+        kahfTracker: "متابع سورة الكهف",
+        tasbihActivity: "نشاط التسبيح (آخر ٧ أيام)",
+        completeSession: "إتمام الجلسة",
+        sessionCompleted: "تمت الجلسة",
+        markRead: "تسجيل قراءة",
+        completedFriday: "تمت القراءة هذه الجمعة"
     }
 };
 
@@ -218,7 +236,16 @@ let state = {
         interval: null
     },
     athkarCounts: {},
-    athkarMode: 'morning'
+    tasbihCounts: {},
+    athkarMode: 'morning',
+
+    // Ibadah History Tracking
+    ibadah: {
+        kahf: [], // ["2023-10-27", ...]
+        athkar: {}, // "YYYY-MM-DD": { morning: bool, evening: bool }
+        tasbih: {} // "YYYY-MM-DD": total_count
+    },
+    theme: 'dark' // 'dark' | 'light'
 };
 
 // --- Initialization ---
@@ -236,8 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         initMoodSelector();
         initCategoryDock();
+        initCategoryDock();
         render(); // Render with default
     }
+
+    // Load Theme
+    const storedTheme = localStorage.getItem('beltagy_theme');
+    setTheme(storedTheme || 'dark');
 });
 
 function loadLocalData() {
@@ -256,6 +288,17 @@ function loadLocalData() {
         // Update UI inputs
         document.getElementById('app-name-input').value = state.appName;
     }
+
+    // Load Counts & History
+    const storedIbadah = localStorage.getItem('beltagy_ibadah');
+    if (storedIbadah) state.ibadah = JSON.parse(storedIbadah);
+
+    const storedCounts = localStorage.getItem('beltagy_counts');
+    if (storedCounts) {
+        const counts = JSON.parse(storedCounts);
+        state.athkarCounts = counts.athkar || {};
+        state.tasbihCounts = counts.tasbih || {};
+    }
 }
 
 function saveLocalData() {
@@ -267,6 +310,13 @@ function saveLocalData() {
         selectedCategory: state.selectedCategory
     };
     localStorage.setItem('beltagy_prefs', JSON.stringify(prefs));
+
+    // Save Counts & History
+    localStorage.setItem('beltagy_ibadah', JSON.stringify(state.ibadah));
+    localStorage.setItem('beltagy_counts', JSON.stringify({
+        athkar: state.athkarCounts,
+        tasbih: state.tasbihCounts
+    }));
 }
 
 // --- CRUD Logic (Local) ---
@@ -549,6 +599,23 @@ function setLanguage(lang) {
         chartTitles[1].innerText = t.prodTrend;
     }
 
+    // Dashboard Updates
+    const tabTasks = document.getElementById('tab-btn-tasks');
+    if (tabTasks) tabTasks.innerText = t.tabTasks;
+    const tabWorship = document.getElementById('tab-btn-worship');
+    if (tabWorship) tabWorship.innerText = t.tabWorship;
+
+    // Use innerHTML to preserve icons
+    const headerKahf = document.getElementById('header-kahf-tracker');
+    if (headerKahf) {
+        headerKahf.innerHTML = `<i data-lucide="book-open" class="w-5 h-5"></i> ${t.kahfTracker}`;
+    }
+    const headerTasbih = document.getElementById('header-tasbih-activity');
+    if (headerTasbih) {
+        headerTasbih.innerHTML = `<i data-lucide="bar-chart-2" class="w-5 h-5"></i> ${t.tasbihActivity}`;
+    }
+    lucide.createIcons();
+
     // Task Name Input Font (Request #3)
     const nameInput = document.getElementById('app-name-input');
     if (isRTL) {
@@ -570,6 +637,32 @@ function setLanguage(lang) {
 
 
 // --- Helper Logic (UI) ---
+
+window.toggleTheme = () => {
+    const newTheme = state.theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+};
+
+function setTheme(mode) {
+    state.theme = mode;
+    localStorage.setItem('beltagy_theme', mode);
+
+    // Apply Class
+    if (mode === 'dark') {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+
+    // Update Toggle Icon
+    const btn = document.getElementById('theme-toggle-btn');
+    if (btn) {
+        btn.innerHTML = mode === 'dark'
+            ? `<i data-lucide="moon" class="w-5 h-5 text-indigo-400"></i>`
+            : `<i data-lucide="sun" class="w-5 h-5 text-amber-500"></i>`;
+        lucide.createIcons();
+    }
+}
 
 // Update setMood and setCategory to use saveLocalData explicitly
 function setMood(mood, save = true) {
@@ -651,7 +744,7 @@ function render() {
             // Usually ok.
 
             const el = document.createElement('div');
-            el.className = `group relative bg-slate-900/50 hover:bg-slate-900/80 border border-white/5 rounded-2xl p-4 transition-all duration-300 ${todo.completed ? 'opacity-50' : ''}`;
+            el.className = `group relative bg-gradient-to-br from-indigo-50 via-white to-pink-50 dark:bg-slate-900/50 hover:shadow-lg dark:hover:bg-slate-900/80 border border-white/60 dark:border-white/5 rounded-2xl p-4 transition-all duration-300 ${todo.completed ? 'opacity-50' : ''}`;
 
             // RTL flipping for icons if needed? usually icons are ok, but layout is handled by flex
             // With RTL, flex items-center gap-4 handles order automatically.
@@ -667,7 +760,7 @@ function render() {
                     </button>
                     
                     <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium truncate ${todo.completed ? 'text-slate-500 line-through' : 'text-white'}">
+                        <p class="text-sm font-medium truncate ${todo.completed ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'}">
                             ${todo.text}
                         </p>
                         <p class="text-[10px] text-slate-500 flex items-center gap-2 mt-0.5">
@@ -701,17 +794,17 @@ function renderAthkar(list) {
 
     // Dynamic Theme Classes
     const theme = isMorning ? {
-        border: 'border-amber-500/20',
-        bg: 'bg-amber-900/20',
-        text: 'text-amber-100',
-        subtext: 'text-amber-200/60',
+        border: 'border-amber-200 dark:border-amber-500/20',
+        bg: 'bg-amber-50 dark:bg-amber-900/20',
+        text: 'text-amber-900 dark:text-amber-100',
+        subtext: 'text-amber-600 dark:text-amber-200/60',
         btn: 'bg-amber-500 hover:bg-amber-400 text-slate-900',
         progress: 'bg-amber-500'
     } : {
-        border: 'border-indigo-500/20',
-        bg: 'bg-indigo-900/20',
-        text: 'text-indigo-100',
-        subtext: 'text-indigo-200/60',
+        border: 'border-indigo-200 dark:border-indigo-500/20',
+        bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+        text: 'text-indigo-900 dark:text-indigo-100',
+        subtext: 'text-indigo-600 dark:text-indigo-200/60',
         btn: 'bg-indigo-500 hover:bg-indigo-400 text-white',
         progress: 'bg-indigo-500'
     };
@@ -790,6 +883,26 @@ function renderAthkar(list) {
         `;
         list.appendChild(el);
     });
+
+    // Finish Session Button
+    const today = new Date().toISOString().split('T')[0];
+    const isSessionDone = state.ibadah.athkar && state.ibadah.athkar[today] && state.ibadah.athkar[today][state.athkarMode];
+
+    const finishBtn = document.createElement('div');
+    finishBtn.className = "col-span-1 md:col-span-2 mt-8 pb-32 flex justify-center";
+    finishBtn.innerHTML = isSessionDone
+        ? `<div class="bg-emerald-500/20 text-emerald-400 px-8 py-3 rounded-full font-bold border border-emerald-500/20 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4">
+             <i data-lucide="check-all" class="w-6 h-6"></i> ${state.athkarMode === 'morning' ? 'Morning' : 'Evening'} ${t.sessionCompleted}
+           </div>`
+        : `<button onclick="finishAthkarSession()" class="group relative px-8 py-3 rounded-full font-bold text-white shadow-lg transition-all active:scale-95 flex items-center gap-2 overflow-hidden ${isMorning ? 'bg-amber-500 hover:bg-amber-400 shadow-amber-500/20' : 'bg-indigo-500 hover:bg-indigo-400 shadow-indigo-500/20'}">
+             <span class="relative z-10 flex items-center gap-2">
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i> ${t.completeSession}
+             </span>
+             <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+           </button>`;
+
+    list.appendChild(finishBtn);
+
     lucide.createIcons();
 }
 
@@ -814,10 +927,11 @@ function renderTasbih(list) {
         const theme = CATEGORIES[state.selectedCategory];
 
         const el = document.createElement('div');
+
         // Comfortable "Night" Tasbih Theme
         // Deep Slate/Emerald Mix, very dark and matte to reduce eye strain
-        const baseStyle = 'relative overflow-hidden rounded-3xl transition-all duration-300 border border-emerald-500/10 bg-gradient-to-br from-[#0f172a] to-[#064e3b] shadow-xl hover:shadow-emerald-900/20';
-        const completedStyle = 'border-white/5 bg-[#0f172a] opacity-50 grayscale-[0.8]';
+        const baseStyle = 'relative overflow-hidden rounded-3xl transition-all duration-300 border border-emerald-200 dark:border-emerald-500/10 bg-emerald-50 dark:bg-gradient-to-br dark:from-[#0f172a] dark:to-[#064e3b] shadow-xl hover:shadow-emerald-900/20';
+        const completedStyle = 'border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-[#0f172a] opacity-50 grayscale-[0.8]';
 
         el.className = `${isCompleted ? completedStyle : baseStyle}`;
 
@@ -834,7 +948,7 @@ function renderTasbih(list) {
                 : ''}
 
                 <!-- Text -->
-                <p class="text-xl md:text-3xl font-athkar leading-[2.6] ${isCompleted ? 'text-slate-500' : 'text-[#ecfdf5]'} drop-shadow-md">
+                <p class="text-xl md:text-3xl font-athkar leading-[2.6] ${isCompleted ? 'text-slate-500' : 'text-emerald-900 dark:text-[#ecfdf5]'} drop-shadow-md">
                     ${item.text.replace(/\n/g, '<br>')}
                 </p>
                 
@@ -866,6 +980,7 @@ function renderKahf(list) {
     if (!list) list = document.getElementById('todo-list');
     list.innerHTML = '';
     list.className = "w-full pb-32"; // Full width for reading
+    const t = TRANSLATIONS[state.language];
 
     // Hide Athkar Controls
     const athkarControls = document.getElementById('athkar-controls');
@@ -874,7 +989,7 @@ function renderKahf(list) {
     const el = document.createElement('div');
     // Comfortable "Night Reading" Theme for Al-Kahf
     // Deep warm slate/stone background, very subtle amber border
-    el.className = `relative overflow-hidden rounded-3xl p-6 md:p-12 transition-all duration-300 border border-amber-500/10 bg-gradient-to-br from-[#1e293b] via-[#0f172a] to-[#1c1917] shadow-2xl`;
+    el.className = `relative overflow-hidden rounded-3xl p-6 md:p-12 transition-all duration-300 border border-amber-200 dark:border-amber-500/10 bg-amber-50 dark:bg-gradient-to-br dark:from-[#1e293b] dark:via-[#0f172a] dark:to-[#1c1917] shadow-2xl`;
 
     el.innerHTML = `
         <div class="relative z-10 flex flex-col gap-8 text-center">
@@ -883,10 +998,10 @@ function renderKahf(list) {
                  <div class="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.1)]">
                     <span class="text-3xl filter drop-shadow-lg">📖</span>
                  </div>
-                 <h2 class="text-4xl md:text-6xl font-bold text-amber-50 font-quran drop-shadow-md">سورة الكهف</h2>
+                 <h2 class="text-4xl md:text-6xl font-bold text-amber-900 dark:text-amber-50 font-quran drop-shadow-md">سورة الكهف</h2>
                  
                  <!-- Hadith -->
-                 <p class="text-lg md:text-2xl text-amber-200/90 font-quran mt-2 max-w-2xl leading-loose drop-shadow-sm" dir="rtl">
+                 <p class="text-lg md:text-2xl font-quran mt-2 max-w-2xl leading-loose drop-shadow-sm bg-gradient-to-r from-amber-700 via-orange-600 to-amber-700 bg-clip-text text-transparent dark:bg-none dark:text-amber-200/90" dir="rtl">
                     "مَنْ قَرَأَ سُورَةَ الْكَهْفِ فِي يَوْمِ الْجُمُعَةِ أَضَاءَ لَهُ مِنَ النُّورِ مَا بَيْنَ الْجُمُعَتَيْنِ"
                  </p>
 
@@ -895,17 +1010,32 @@ function renderKahf(list) {
 
             <!-- Quran Text -->
             <!-- Using moderate leading (2.2) for tighter but clear look -->
-            <div class="text-2xl md:text-4xl font-quran leading-[2.5] tracking-wide text-justify text-[#fef3c7] whitespace-pre-wrap px-2 md:px-6 relative z-10" dir="rtl" style="text-shadow: 0 2px 10px rgba(0,0,0,0.5); line-height: 2.2;">
+            <div class="text-2xl md:text-4xl font-quran leading-[2.5] tracking-wide text-justify text-amber-950 dark:text-[#fef3c7] whitespace-pre-wrap px-2 md:px-6 relative z-10" dir="rtl" style="text-shadow: 0 2px 10px rgba(0,0,0,0.5); line-height: 2.2;">
                 ${KAHF_TEXT}
             </div>
 
             <!-- Footer Note -->
-            <div class="mt-12 pt-8 border-t border-amber-500/10">
-                <p class="text-sm md:text-base text-amber-500/60 font-athkar">
-                    لا تنسنا من دعوة صالحة بظهر الغيب
-                </p>
-                <div class="mt-2 text-xs text-slate-600 font-sans opacity-50">
-                    B-Task 🚀
+            <div class="mt-12 pt-8 border-t border-amber-500/10 flex flex-col items-center gap-6">
+                <!-- Mark as Read Button -->
+                ${(() => {
+            const today = new Date().toISOString().split('T')[0];
+            const isRead = state.ibadah.kahf && state.ibadah.kahf.includes(today);
+            return isRead
+                ? `<div class="bg-emerald-500/20 text-emerald-400 px-6 py-2 rounded-full font-bold border border-emerald-500/20 flex items-center gap-2">
+                             <i data-lucide="check-circle" class="w-5 h-5"></i> ${t.completedFriday}
+                           </div>`
+                : `<button onclick="markKahfRead()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 px-8 py-3 rounded-full font-bold shadow-lg shadow-amber-500/20 transition-all active:scale-95 flex items-center gap-2">
+                             <i data-lucide="check" class="w-5 h-5"></i> ${t.markRead}
+                           </button>`;
+        })()}
+
+                <div class="text-center">
+                    <p class="text-sm md:text-base text-amber-500/60 font-athkar">
+                        لا تنسنا من دعوة صالحة بظهر الغيب
+                    </p>
+                    <div class="mt-2 text-xs text-slate-600 font-sans opacity-50">
+                        B-Task 🚀
+                    </div>
                 </div>
             </div>
         </div>
@@ -918,6 +1048,30 @@ function renderKahf(list) {
     list.appendChild(el);
 }
 
+window.resetAthkar = () => {
+    const list = state.athkarMode === 'morning' ? ATHKAR_MORNING : ATHKAR_EVENING;
+    list.forEach(i => {
+        if (state.athkarCounts[i.id]) delete state.athkarCounts[i.id];
+    });
+    saveLocalData();
+    renderAthkar();
+};
+
+window.incrementAthkar = (id) => {
+    if (!state.athkarCounts) state.athkarCounts = {};
+    const list = state.athkarMode === 'morning' ? ATHKAR_MORNING : ATHKAR_EVENING;
+    const item = list.find(i => i.id === id);
+    if (!item) return;
+
+    const current = state.athkarCounts[id] || 0;
+    if (current < item.count) {
+        state.athkarCounts[id] = current + 1;
+        saveLocalData();
+        renderAthkar();
+        triggerConfetti(document.activeElement);
+    }
+};
+
 window.incrementTasbih = (id) => {
     if (!state.tasbihCounts) state.tasbihCounts = {};
     const item = TASBIH_DATA.find(i => i.id === id);
@@ -926,12 +1080,45 @@ window.incrementTasbih = (id) => {
     const current = state.tasbihCounts[id] || 0;
     if (current < item.count) {
         state.tasbihCounts[id] = current + 1;
+
+        // Log Daily Ibadah
+        const today = new Date().toISOString().split('T')[0];
+        if (!state.ibadah.tasbih) state.ibadah.tasbih = {}; // Safety
+        state.ibadah.tasbih[today] = (state.ibadah.tasbih[today] || 0) + 1;
+
         saveLocalData();
         renderTasbih();
         triggerConfetti(document.activeElement);
     }
 };
 // --- Stats, Timer, Emojis (Preserved & Adapted) ---
+
+// --- Ibadah Logic ---
+
+window.markKahfRead = () => {
+    const today = new Date().toISOString().split('T')[0];
+    if (!state.ibadah.kahf) state.ibadah.kahf = [];
+
+    if (!state.ibadah.kahf.includes(today)) {
+        state.ibadah.kahf.push(today);
+        saveLocalData();
+        renderKahf(); // Re-render to show "Completed" state
+        triggerConfetti(document.activeElement);
+    }
+};
+
+window.finishAthkarSession = () => {
+    const today = new Date().toISOString().split('T')[0];
+    if (!state.ibadah.athkar) state.ibadah.athkar = {};
+    if (!state.ibadah.athkar[today]) state.ibadah.athkar[today] = {};
+
+    // Mark current mode (morning/evening) as done
+    state.ibadah.athkar[today][state.athkarMode] = true;
+
+    saveLocalData();
+    renderAthkar(); // Re-render to show completion
+    triggerConfetti(document.activeElement);
+};
 
 function initEmojis() {
     const container = document.getElementById('emoji-container');
@@ -1097,4 +1284,112 @@ function getClientEncouragement(task, mood) {
     const t = TRANSLATIONS[state.language];
     if (mood === 'Low Energy') return "Small steps. Breathe. 🌿";
     return msgs[Math.floor(Math.random() * msgs.length)];
+}
+// --- Ibadah Dashboard Logic ---
+
+window.switchStatsTab = (tab) => {
+    // Buttons
+    ['tasks', 'worship'].forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const content = document.getElementById(`tab-${t}`);
+        if (t === tab) {
+            btn.className = "px-4 py-1.5 rounded-lg text-sm font-bold bg-indigo-500 text-white shadow-lg transition-all";
+            content.classList.remove('hidden');
+        } else {
+            btn.className = "px-4 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-all";
+            content.classList.add('hidden');
+        }
+    });
+
+    if (tab === 'worship') {
+        renderIbadahStats();
+    }
+};
+
+function renderIbadahStats() {
+    renderKahfStats();
+    renderTasbihChart();
+}
+
+function renderKahfStats() {
+    const container = document.getElementById('kahf-stats-grid');
+    if (!container) return;
+
+    // Get last 4 Fridays
+    const history = state.ibadah.kahf || [];
+    const fridays = [];
+    let d = new Date();
+    // Adjust to today or previous Friday
+    while (d.getDay() !== 5) d.setDate(d.getDate() - 1);
+
+    for (let i = 0; i < 4; i++) {
+        fridays.push(new Date(d));
+        d.setDate(d.getDate() - 7);
+    }
+
+    container.innerHTML = fridays.map(date => {
+        const dateStr = date.toISOString().split('T')[0];
+        const isDone = history.includes(dateStr);
+        const displayDate = date.toLocaleDateString(state.language === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' });
+
+        return `
+            <div class="flex flex-col items-center gap-2 p-3 rounded-2xl border ${isDone ? 'bg-amber-500/10 border-amber-500/30' : 'bg-white/5 border-white/5'} flex-1">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">${displayDate}</span>
+                <div class="w-10 h-10 rounded-full flex items-center justify-center ${isDone ? 'bg-amber-500 text-slate-900 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-white/10 text-slate-600'}">
+                    <i data-lucide="${isDone ? 'check' : 'x'}" class="w-5 h-5"></i>
+                </div>
+            </div>
+        `;
+    }).reverse().join('');
+
+    lucide.createIcons();
+}
+
+function renderTasbihChart() {
+    const ctx = document.getElementById('tasbihChart');
+    if (!ctx) return;
+
+    // Prepare Data (Last 7 Days)
+    const labels = [];
+    const data = [];
+    const counts = state.ibadah.tasbih || {};
+
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        labels.push(d.toLocaleDateString(state.language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'short' }));
+        data.push(counts[dateStr] || 0);
+    }
+
+    if (chartInstances.tasbih) chartInstances.tasbih.destroy();
+
+    chartInstances.tasbih = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: TRANSLATIONS[state.language].tasbih,
+                data: data,
+                backgroundColor: '#10b981',
+                borderRadius: 4,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            responsive: true,
+            scales: {
+                y: { display: false },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#94a3b8' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: { backgroundColor: '#0f172a', titleColor: '#fff', bodyColor: '#cbd5e1' }
+            }
+        }
+    });
 }
