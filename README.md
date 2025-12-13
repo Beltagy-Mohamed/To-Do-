@@ -1,41 +1,43 @@
-# Beltagy To-Do App 🚀
+# B-Task 🚀
 
-A modern, aesthetically pleasing To-Do application with productivity features, Arabic language support, and a comprehensive Athkar (Supplications) section.
+A modern, privacy-focused productivity and worship tracking application built for the web.
 
-## Features
-- **Smart Task Management**: Categorize by Personal, Work, Creative, or Urgent.
-- **Productivity Tools**: Pomodoro Timer, Analytics (Charts), and XP Gamification.
-- **Athkar Section**: Morning and Evening supplications with an interactive counter and progress tracking.
-- **Bilingual Interface**: Full support for English and Arabic (RTL).
-- **Guest Mode**: Use the app offline without a backend.
-- **Cloud Sync**: Optional Firebase integration for cross-device sync.
+## Features ✨
 
-## 🌍 How to Deploy to GitHub Pages
+### 📝 Smart Task Management desc
+- **Daily & Weekly Views**: Organize tasks by timeframe.
+- **Categories**: Personal, Work, Education, Health, Finance.
+- **Progress Tracking**: XP system and completion rates.
+- **Focus Timer**: Built-in Pomodoro-style timer with ambient sounds.
 
-This application is built with standard web technologies (HTML/CSS/JS) and is ready for GitHub Pages.
+### 🕌 Worship Dashboard (Ibadah)
+- **Athkar**: Morning & Evening Adhkar with counters and progress bars.
+- **Tasbih**: Digital Tasbih with historical tracking.
+- **Surat Al-Kahf**: Read in a comfortable "Night Mode" with Friday tracking.
+- **Analytics**: Beautiful charts visualizing your worship habits.
 
-1.  **Push to GitHub**:
-    -   Initialize a git repository: `git init`
-    -   Add files: `git add .`
-    -   Commit: `git commit -m "Initial commit"`
-    -   Push to your repository.
+### 🎨 Dynamic Themes
+- **Morning Mode ☀️**: Fresh, energizing Light theme with category-specific gradients (Rose, Sky, Amber, Emerald, Indigo).
+- **Evening Mode 🌙**: Comfortable, deep slate/indigo Night theme for reduced eye strain.
+- **Global Toggle**: Instantly switch modes with the Sun/Moon button.
 
-2.  **Enable GitHub Pages**:
-    -   Go to your Repository **Settings**.
-    -   Navigate to the **Pages** section.
-    -   Under **Build and deployment**, select **Source** as `Deploy from a branch`.
-    -   Select your `main` branch and `/` (root) folder.
-    -   Click **Save**.
+### 🌍 Localization
+- **Fully Bilingual**: Seamless switching between English and Arabic (RTL support).
 
-3.  **Done!**
-    -   Your site will be live at `https://<your-username>.github.io/<repo-name>/`.
+## Tech Stack 🛠️
+- **Frontend**: HTML5, Vanilla JavaScript.
+- **Styling**: Tailwind CSS (CDN).
+- **Icons**: Lucide Icons.
+- **Charts**: Chart.js.
+- **Pattern**: No-Server (Static), LocalStorage persistence.
 
-## 🛠️ Configuration
+## How to Run 🚀
+1.  Clone the repository.
+2.  Open `index.html` in any modern browser.
+3.  *Optional*: Use the `start_server.bat` for a local dev server environment.
 
-### Firebase (Optional)
-To enable cloud sync, edit `firebase-config.js` with your own Firebase Project keys.
-If you don't provide keys, the app automatically enables **Guest Mode** (Local Storage only).
+## Privacy 🔒
+All data is stored locally in your browser's `localStorage`. No data is sent to any server. Your privacy is paramount.
 
-### Running Locally
-To run the app locally on your computer, double-click `start_server.bat`.
-This launches a local Python server to bypass browser security restrictions.
+---
+*Built with ❤️ by B-Task Team*

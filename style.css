@@ -82,3 +82,73 @@
 [dir="rtl"] .rtl-flip {
     transform: scaleX(-1);
 }
+
+/* Liquid Background */
+#water-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    /* Start at 0 */
+    min-height: 5px;
+    z-index: 0;
+    /* Behind content but check index.html layering */
+    transition: height 1s ease-in-out;
+    background: linear-gradient(0deg, #020024 0%, #090979 35%, #00d4ff 100%);
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0.6;
+    /* Subtle blend */
+}
+
+/* Dynamic Gradient Classes applied by JS */
+.bg-ocean-deep {
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+
+.bg-ocean-mid {
+    background: linear-gradient(180deg, #0c4a6e 0%, #0284c7 100%);
+}
+
+.bg-ocean-bright {
+    background: linear-gradient(180deg, #0891b2 0%, #22d3ee 100%);
+}
+
+.wave {
+    position: absolute;
+    top: -80%;
+    /* Adjust to make wave crest visible */
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 40%;
+    animation: wave-rotate 15s infinite linear;
+}
+
+.wave:nth-child(2) {
+    top: -82%;
+    left: -48%;
+    opacity: 0.5;
+    animation-duration: 20s;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.wave:nth-child(3) {
+    top: -84%;
+    left: -46%;
+    opacity: 0.3;
+    animation-duration: 25s;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+@keyframes wave-rotate {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

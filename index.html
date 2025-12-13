@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>B-Task 🚀</title>
+    <link rel="icon" type="image/png" href="logo.png">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -26,7 +27,16 @@
                     },
                     animation: {
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                    }
+                        blob: "blob 7s infinite",
+                    },
+                    keyframes: {
+                        blob: {
+                            "0%": { transform: "translate(0px, 0px) scale(1)" },
+                            "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+                            "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+                            "100%": { transform: "translate(0px, 0px) scale(1)" },
+                        },
+                    },
                 }
             }
         }
@@ -35,6 +45,16 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Dancing+Script:wght@700&family=Cairo:wght@400;700&family=Tajawal:wght@400;500;700&family=Amiri:wght@400;700;900&family=Caveat:wght@700&display=swap"
         rel="stylesheet">
+    <style>
+        /* RTL Specific Header Reordering */
+        [dir="rtl"] .header-logo {
+            order: 2;
+        }
+
+        [dir="rtl"] .header-title {
+            order: 1;
+        }
+    </style>
     <!-- Icons (Lucide via UNPKG for simplicity in vanilla) -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Chart.js -->
@@ -43,17 +63,7 @@
 </head>
 
 <body
-    class="bg-cream dark:bg-slate-950 text-slate-800 dark:text-slate-200 min-h-[100dvh] overflow-x-hidden font-sans selection:bg-amber-500/30 dark:selection:bg-indigo-500/30 transition-colors duration-500">
-
-    <!-- Background Layers -->
-    <div class="fixed inset-0 z-0 bg-cream dark:bg-slate-950 transition-colors duration-500">
-        <div
-            class="absolute inset-0 bg-[linear-gradient(to_right,#e5e5e5_1px,transparent_1px),linear-gradient(to_bottom,#e5e5e5_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 dark:opacity-100">
-        </div>
-        <div
-            class="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-amber-500/10 dark:bg-indigo-500/20 blur-[120px] rounded-full pointer-events-none transition-colors duration-500">
-        </div>
-    </div>
+    class="bg-transparent text-slate-800 dark:text-slate-200 min-h-[100dvh] overflow-x-hidden font-sans selection:bg-amber-500/30 dark:selection:bg-indigo-500/30 transition-colors duration-500">
 
     <!-- Theme Toggle -->
     <button onclick="toggleTheme()" id="theme-toggle-btn"
@@ -61,15 +71,21 @@
         <i data-lucide="moon" class="w-5 h-5 text-indigo-500 dark:text-indigo-400"></i>
     </button>
 
-    <!-- Floating Emojis Container -->
-    <div id="emoji-container" class="fixed inset-0 z-0 pointer-events-none overflow-hidden"></div>
-
     <!-- Main Content -->
     <main class="relative z-10 w-full max-w-4xl mx-auto p-4 flex flex-col items-center min-h-screen pt-12 pb-24">
 
         <!-- Header -->
-        <div class="w-full text-center mb-6 relative group">
-            <div class="absolute right-0 top-0 flex items-center gap-2">
+        <!-- Header -->
+        <!-- Header -->
+        <div class="w-full flex items-center justify-between mb-6 relative group">
+            <!-- Logo Section -->
+            <div class="flex items-center gap-4">
+                <img src="logo.png" alt="Logo"
+                    class="w-16 h-16 rounded-2xl shadow-lg shadow-indigo-500/20 hover:scale-105 transition-transform">
+            </div>
+
+            <!-- Controls Section -->
+            <div class="flex items-center gap-2">
                 <button id="lang-toggle"
                     class="px-3 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 rounded-full text-xs font-bold text-slate-700 dark:text-white transition-colors">
                     عربي
@@ -80,18 +96,8 @@
                     <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
                 </button>
             </div>
-
-            <h1
-                class="text-5xl md:text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-200 via-emerald-200 to-cyan-200 mb-2 inline-block tracking-tight drop-shadow-sm">
-                B-Task 🚀
-            </h1>
-
-            <div class="mt-2 relative max-w-md mx-auto">
-                <input type="text" id="app-name-input"
-                    class="bg-transparent border-none text-center text-xl md:text-2xl text-pink-600 dark:text-pink-300 focus:ring-0 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-white/10 w-full font-creative cursor-pointer hover:text-pink-500 dark:hover:text-pink-200 transition-colors"
-                    placeholder="Name your workspace..." style="text-shadow: 0 0 15px rgba(236, 72, 153, 0.3);">
-            </div>
         </div>
+
 
         <!-- Input Area (Main Focus) -->
         <div class="w-full max-w-2xl relative group mb-8 z-20">
@@ -99,7 +105,7 @@
                 class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-2xl opacity-30 group-hover:opacity-60 transition duration-500 blur">
             </div>
             <div
-                class="relative flex items-center bg-white dark:bg-slate-900 rounded-xl p-2 border border-slate-200 dark:border-white/10 shadow-2xl transition-colors duration-300">
+                class="relative flex items-center bg-white dark:bg-slate-800 rounded-xl p-2 border border-slate-200 dark:border-white/10 shadow-2xl transition-colors duration-300">
                 <input type="text" id="todo-input"
                     class="flex-1 bg-transparent border-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-0 focus:outline-none h-14 px-4 text-xl"
                     placeholder="What's your next win?" onkeydown="handleInputKey(event)">
@@ -110,12 +116,16 @@
             </div>
         </div>
 
-        <!-- Controls Row (Mood & View) -->
-        <div class="flex flex-col md:flex-row items-center justify-between gap-4 w-full max-w-2xl mb-8">
-            <!-- Mood Selector -->
-            <div class="flex flex-wrap justify-center gap-2" id="mood-selector">
-                <!-- Buttons injected by JS -->
-            </div>
+
+        <!-- Categories (New Location) -->
+        <div id="category-dock"
+            class="w-full max-w-2xl flex items-center justify-start gap-2 overflow-x-auto scrollbar-hide py-2 px-1 mb-6 -mt-4">
+            <!-- Injected by JS -->
+        </div>
+
+        <!-- Controls Row (View Switcher Only) -->
+        <div class="flex items-center justify-center w-full max-w-2xl mb-8">
+            <!-- Mood Selector Removed -->
 
             <!-- View Switcher -->
             <div
@@ -322,19 +332,12 @@
             </div>
         </div>
 
-        <!-- Category Dock (Bottom) -->
-        <div
-            class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-full p-2 shadow-2xl flex items-center gap-2 scale-90 md:scale-100 hover:scale-105 transition-transform duration-300">
-            <div id="category-dock" class="flex items-center gap-1">
-                <!-- Injected by JS -->
-            </div>
-            <div class="w-[1px] h-6 bg-white/20 mx-2"></div>
-            <button onclick="logout()"
-                class="p-3 rounded-full hover:bg-white/10 text-slate-400 hover:text-red-400 transition-colors"
-                title="Log Out">
-                <i data-lucide="log-out" class="w-5 h-5"></i>
-            </button>
-        </div>
+        <!-- Category Dock Removed from Bottom -->
+        <button onclick="logout()"
+            class="fixed bottom-6 right-6 p-3 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur border border-slate-200 dark:border-white/10 text-slate-500 hover:text-red-500 z-50 transition-colors shadow-lg"
+            title="Log Out">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
 
         <!-- Auth Modal -->
         <div id="auth-modal"
