@@ -542,7 +542,39 @@ document.addEventListener('DOMContentLoaded', () => {
     updateStats();
     initCategoryDock();
     initAmbientVisuals();
+
+    // 6. External Integrations (Gmail Assistant)
+    handleExternalActions();
 });
+
+function handleExternalActions() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'add') {
+        const title = params.get('title');
+        const cat = params.get('cat') || 'Essence';
+
+        if (title) {
+            // Add task directly
+            state.todos.unshift({
+                id: Date.now().toString(),
+                text: title,
+                completed: false,
+                category: CATEGORIES[cat] ? cat : 'Essence',
+                colorClass: CATEGORIES[cat]?.color || CATEGORIES['Essence'].color,
+                viewMode: 'Daily',
+                createdAt: new Date()
+            });
+            saveLocalData();
+            render();
+
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            // Visual feedback
+            setTimeout(() => alert(`✅ تمت إضافة المهمة من البريد: ${title}`), 500);
+        }
+    }
+}
 
 function repairState() {
     // Force valid category
