@@ -40,4 +40,5 @@ A modern, privacy-focused productivity and worship tracking application built fo
 All data is stored locally in your browser's `localStorage`. No data is sent to any server. Your privacy is paramount.
 
 ---
-*Built with ❤️ by B-Task Team*
+*Built with ❤️ by Beltagy *
+
