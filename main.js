@@ -545,6 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 6. External Integrations (Gmail Assistant)
     handleExternalActions();
+    setupMessageListener();
 });
 
 function handleExternalActions() {
@@ -557,7 +558,7 @@ function handleExternalActions() {
             // Add task directly
             state.todos.unshift({
                 id: Date.now().toString(),
-                text: title,
+                text: decodeURIComponent(title),
                 completed: false,
                 category: CATEGORIES[cat] ? cat : 'Essence',
                 colorClass: CATEGORIES[cat]?.color || CATEGORIES['Essence'].color,
@@ -566,14 +567,49 @@ function handleExternalActions() {
             });
             saveLocalData();
             render();
+            updateStats();
 
             // Clean URL
             window.history.replaceState({}, document.title, window.location.pathname);
-
-            // Visual feedback
-            setTimeout(() => alert(`✅ تمت إضافة المهمة من البريد: ${title}`), 500);
         }
     }
+}
+
+function setupMessageListener() {
+    window.addEventListener('message', (event) => {
+        // Security: verify origin (adjust if needed)
+        if (event.origin !== 'http://localhost:3000' &&
+            !event.origin.includes('github.io') &&
+            !event.origin.startsWith('file://')) {
+            return;
+        }
+
+        if (event.data.action === 'addTask') {
+            const { title, category, emailMeta } = event.data;
+
+            // Build email reference note
+            let emailNote = '';
+            if (emailMeta) {
+                emailNote = `\n\n📧 من: ${emailMeta.subject}\n👤 ${emailMeta.sender}`;
+            }
+
+            // Add task with email metadata
+            state.todos.unshift({
+                id: Date.now().toString(),
+                text: title + emailNote,
+                completed: false,
+                category: CATEGORIES[category] ? category : 'Essence',
+                colorClass: CATEGORIES[category]?.color || CATEGORIES['Essence'].color,
+                viewMode: 'Daily',
+                createdAt: new Date(),
+                emailMeta: emailMeta // Store full metadata
+            });
+
+            saveLocalData();
+            render();
+            updateStats();
+        }
+    });
 }
 
 function repairState() {
