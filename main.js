@@ -553,17 +553,29 @@ function handleExternalActions() {
     if (params.get('action') === 'add') {
         const title = params.get('title');
         const cat = params.get('cat') || 'Essence';
+        const info = params.get('info'); // Email metadata
+        const emailId = params.get('emailId'); // Gmail email ID
 
         if (title) {
-            // Add task directly
+            // Store email info separately, not in main text
+            let emailNote = null;
+            if (info) {
+                emailNote = decodeURIComponent(info);
+                if (emailId) {
+                    emailNote += `\n🔗 Email ID: ${emailId}`;
+                }
+            }
+
+            // Add task with clean title + hidden email metadata
             state.todos.unshift({
                 id: Date.now().toString(),
-                text: decodeURIComponent(title),
+                text: decodeURIComponent(title), // Clean title only
                 completed: false,
                 category: CATEGORIES[cat] ? cat : 'Essence',
                 colorClass: CATEGORIES[cat]?.color || CATEGORIES['Essence'].color,
                 viewMode: 'Daily',
-                createdAt: new Date()
+                createdAt: new Date(),
+                emailNote: emailNote // Store email reference separately
             });
             saveLocalData();
             render();
