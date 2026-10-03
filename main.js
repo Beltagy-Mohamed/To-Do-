@@ -1569,9 +1569,9 @@ function renderMushaf(list) {
     container.className = 'relative overflow-hidden rounded-3xl p-4 md:p-10 border border-slate-700/50 bg-[#f8f9fa] dark:bg-[#0f172a] shadow-2xl mb-8 min-h-[600px] flex flex-col transition-colors duration-500';
     container.id = 'mushaf-container';
     
-    container.innerHTML = 
+    container.innerHTML = `
         <div class="flex items-center justify-between border-b border-slate-300 dark:border-slate-700 pb-4 mb-6">
-            <div class="text-slate-800 dark:text-slate-200 font-bold text-lg md:text-xl font-amiri" id="mushaf-surah-name">???? ???????...</div>
+            <div class="text-slate-800 dark:text-slate-200 font-bold text-lg md:text-xl font-amiri" id="mushaf-surah-name">جاري التحميل...</div>
             <div class="text-slate-600 dark:text-slate-400 text-sm md:text-base font-amiri" id="mushaf-juz-name"></div>
         </div>
         
@@ -1584,7 +1584,7 @@ function renderMushaf(list) {
         <!-- Tafsir Bottom Sheet (Hidden) -->
         <div id="tafsir-sheet" class="hidden absolute bottom-20 left-4 right-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-2xl z-50 transform transition-transform">
             <div class="flex justify-between items-center mb-2 border-b border-slate-100 dark:border-slate-700 pb-2">
-                <span class="font-bold text-indigo-600 dark:text-indigo-400">??????? ??????</span>
+                <span class="font-bold text-indigo-600 dark:text-indigo-400">التفسير الميسر</span>
                 <button onclick="document.getElementById('tafsir-sheet').classList.add('hidden')" class="text-slate-400 hover:text-red-500"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             <div id="tafsir-text" class="text-slate-700 dark:text-slate-300 text-sm md:text-base leading-relaxed text-justify" dir="rtl"></div>
@@ -1600,7 +1600,7 @@ function renderMushaf(list) {
                     <i data-lucide="play" class="w-6 h-6 fill-current"></i>
                 </button>
                 <div class="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold text-slate-700 dark:text-slate-300">
-                    <span id="mushaf-page-number">\</span>
+                    <span id="mushaf-page-number">${currentMushafPage}</span>
                 </div>
             </div>
             
@@ -1608,7 +1608,7 @@ function renderMushaf(list) {
                 <i data-lucide="chevron-left" class="w-6 h-6 text-slate-600 dark:text-slate-300"></i>
             </button>
         </div>
-    ;
+    `;
     list.appendChild(container);
     if (window.lucide) lucide.createIcons();
     
@@ -1645,12 +1645,11 @@ window.toggleMushafAudio = async () => {
         mushafPlaying = false;
         btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
     } else {
-        // We will just play the page audio sequentially
         btn.innerHTML = '<i data-lucide="loader" class="w-6 h-6 animate-spin"></i>';
         if (window.lucide) lucide.createIcons();
         
         try {
-            const res = await fetch(\https://api.alquran.cloud/v1/page/\/ar.alafasy\);
+            const res = await fetch(`https://api.alquran.cloud/v1/page/${currentMushafPage}/ar.alafasy`);
             const data = await res.json();
             const ayahs = data.data.ayahs;
             
@@ -1664,9 +1663,8 @@ window.toggleMushafAudio = async () => {
                     return;
                 }
                 
-                // Highlight text
                 document.querySelectorAll('.ayah-text').forEach(el => el.classList.remove('ayah-active', 'text-emerald-600', 'dark:text-emerald-400'));
-                const currentEl = document.getElementById(\yah-\\);
+                const currentEl = document.getElementById(`ayah-${ayahs[currentAyahIndex].number}`);
                 if (currentEl) {
                     currentEl.classList.add('ayah-active', 'text-emerald-600', 'dark:text-emerald-400');
                     currentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1701,16 +1699,16 @@ window.showTafsir = async (ayahNumber) => {
     if (window.lucide) lucide.createIcons();
     
     try {
-        const res = await fetch(\https://api.alquran.cloud/v1/ayah/\/ar.muyassar\);
+        const res = await fetch(`https://api.alquran.cloud/v1/ayah/${ayahNumber}/ar.muyassar`);
         const data = await res.json();
         textEl.innerText = data.data.text;
     } catch (e) {
-        textEl.innerText = '?????? ??? ????? ???????. ???? ?? ??????? ?????????.';
+        textEl.innerText = 'عذراً، فشل تحميل التفسير. تحقق من الاتصال بالإنترنت.';
     }
 };
 
 function toArabicNumber(n) {
-    const digits = ['?','?','?','?','?','?','?','?','?','?'];
+    const digits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
     return n.toString().split('').map(d => digits[d]).join('');
 }
 
@@ -1727,30 +1725,29 @@ async function fetchMushafPage(page) {
         if (mushafCache[page]) {
             ayahs = mushafCache[page];
         } else {
-            const res = await fetch(\https://api.alquran.cloud/v1/page/\/quran-uthmani\);
+            const res = await fetch(`https://api.alquran.cloud/v1/page/${page}/quran-uthmani`);
             const data = await res.json();
             ayahs = data.data.ayahs;
             mushafCache[page] = ayahs;
         }
         
         surahNameEl.innerText = ayahs[0].surah.name;
-        juzNameEl.innerText = '????? ' + toArabicNumber(ayahs[0].juz);
+        juzNameEl.innerText = 'الجزء ' + toArabicNumber(ayahs[0].juz);
         
         let html = '';
-        // If it's a new Surah, we should show the Basmala, but the API includes it in Ayah 1 mostly.
         ayahs.forEach(ayah => {
-            // Remove Bismillah from text if it's not Fatiha and it's ayah 1
             let text = ayah.text;
             if (ayah.numberInSurah === 1 && ayah.surah.number !== 1 && ayah.surah.number !== 9) {
-                text = text.replace('?????? ??????? ???????????? ??????????', '');
-                html += \<div class="w-full text-center text-xl md:text-2xl text-emerald-600 dark:text-emerald-400 my-4 font-amiri">?????? ??????? ???????????? ??????????</div>\;
+                text = text.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ ', '');
+                text = text.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', ''); // Fallback
+                html += `<div class="w-full text-center text-xl md:text-2xl text-emerald-600 dark:text-emerald-400 my-4 font-amiri">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>`;
             }
-            html += \<span id="ayah-\" class="ayah-text cursor-pointer transition-colors duration-300 hover:text-indigo-500" onclick="showTafsir(\)">\ <span class="ayah-number font-sans">\u06DD\</span> </span>\;
+            html += `<span id="ayah-${ayah.number}" class="ayah-text cursor-pointer transition-colors duration-300 hover:text-indigo-500" onclick="showTafsir(${ayah.number})">${text} <span class="ayah-number font-sans">\u06DD${toArabicNumber(ayah.numberInSurah)}</span> </span>`;
         });
         
         textContainer.innerHTML = html;
         
     } catch (e) {
-        textContainer.innerHTML = '<div class="text-red-500 text-sm">??? ?? ??????? ???????. ???? ???????? ??????.</div>';
+        textContainer.innerHTML = '<div class="text-red-500 text-sm">خطأ في الاتصال بالشبكة. يرجى المحاولة لاحقاً.</div>';
     }
 }
