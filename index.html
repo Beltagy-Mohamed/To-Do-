@@ -114,10 +114,28 @@
                 <input type="text" id="todo-input"
                     class="flex-1 bg-transparent border-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-0 focus:outline-none h-14 px-4 text-xl"
                     placeholder="What's your next win?" onkeydown="handleInputKey(event)">
+                
+                <button onclick="toggleReminderPanel()" 
+                    class="p-4 mr-2 text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors rounded-lg" 
+                    title="Set Reminder">
+                    <i data-lucide="bell" id="bell-icon" class="w-6 h-6"></i>
+                </button>
+
                 <button onclick="addTodo()"
-                    class="p-4 bg-white text-slate-900 rounded-lg hover:bg-slate-200 transition-colors shrink-0">
+                    class="p-4 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors shrink-0 shadow-lg shadow-indigo-500/30">
                     <i data-lucide="plus" class="w-6 h-6"></i>
                 </button>
+            </div>
+            
+            <!-- Reminder Panel -->
+            <div id="reminder-panel" class="hidden mt-2 p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-white/10 shadow-lg animate-in fade-in slide-in-from-top-2">
+                <div class="flex flex-col gap-2">
+                    <label class="text-sm font-bold text-slate-600 dark:text-slate-300" id="label-reminder-time">Reminder Date & Time</label>
+                    <div class="flex gap-2">
+                        <input type="datetime-local" id="todo-reminder" class="flex-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg p-2 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button onclick="clearReminder()" id="btn-clear-reminder" class="px-4 py-2 bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-500/30 transition-colors">Clear</button>
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -542,6 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateStats();
     initCategoryDock();
     initAmbientVisuals();
+    startReminderService(); // Start checking for reminders
 
 });
 function repairState() {
@@ -623,10 +624,36 @@ window.handleInputKey = (e) => {
     if (e.key === 'Enter') addTodo();
 };
 
+window.toggleReminderPanel = () => {
+    const panel = document.getElementById('reminder-panel');
+    const bell = document.getElementById('bell-icon');
+    if (panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        bell.classList.add('fill-current', 'text-indigo-500');
+        if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+            Notification.requestPermission();
+        }
+    } else {
+        panel.classList.add('hidden');
+        bell.classList.remove('fill-current', 'text-indigo-500');
+    }
+};
+
+window.clearReminder = () => {
+    const el = document.getElementById('todo-reminder');
+    if (el) el.value = '';
+};
 window.addTodo = async () => {
     const input = document.getElementById('todo-input');
     const text = input.value.trim();
     if (!text) return;
+
+    // Get reminder
+    const reminderEl = document.getElementById('todo-reminder');
+    let reminderTime = null;
+    if (reminderEl && reminderEl.value) {
+        reminderTime = new Date(reminderEl.value).getTime();
+    }
 
     // Default to 'Essence' if 'All' is selected, otherwise use selected category
     let category = state.selectedCategory === 'All' ? 'Essence' : state.selectedCategory;
@@ -643,7 +670,9 @@ window.addTodo = async () => {
         category: category,
         colorClass,
         viewMode: 'Daily', // Force to be a daily task
-        createdAt: new Date()
+        createdAt: new Date(),
+        reminderTime: reminderTime,
+        reminded: false
     });
 
     // Auto-switch to rendering tasks if we are in a different mode
@@ -654,6 +683,14 @@ window.addTodo = async () => {
 
     saveLocalData();
     input.value = '';
+    
+    // Clear and hide reminder panel
+    if (reminderEl) reminderEl.value = '';
+    const panel = document.getElementById('reminder-panel');
+    const bell = document.getElementById('bell-icon');
+    if (panel) panel.classList.add('hidden');
+    if (bell) bell.classList.remove('fill-current', 'text-indigo-500');
+
     render();
     updateStats();
 };
@@ -816,6 +853,12 @@ function render() {
                 // Border colors are now handled by lightStyle (CATEGORY_STYLES)
                 el.className = `group relative ${lightStyle} dark:bg-none dark:bg-slate-800/50 hover:shadow-lg dark:hover:bg-slate-700/50 rounded-2xl p-4 transition-all duration-300 ${todo.completed ? 'opacity-60 grayscale' : ''}`;
 
+                const reminderHtml = todo.reminderTime && !todo.completed ? 
+                    `<p class="text-[12px] text-indigo-600 dark:text-indigo-400 flex items-center gap-1 mt-1 font-bold">
+                        <i data-lucide="bell-ring" class="w-3 h-3"></i>
+                        ${new Date(todo.reminderTime).toLocaleString(state.language === 'ar' ? 'ar-EG' : 'en-US', {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'})}
+                    </p>` : '';
+
                 el.innerHTML = `
     <div class="flex items-center gap-4">
                     <button onclick="toggleTodo('${todo.id}')" 
@@ -830,8 +873,9 @@ function render() {
                         <p class="text-lg font-bold break-words leading-relaxed ${todo.completed ? 'text-slate-600 dark:text-slate-500 line-through decoration-slate-400' : 'text-slate-900 dark:text-slate-100'}">
                             ${todo.text}
                         </p>
+                        ${reminderHtml}
                         <p class="text-[12px] text-slate-600 dark:text-slate-400 flex items-center gap-2 mt-1 font-bold opacity-80">
-                            <span class="text-sm">${(CATEGORIES[todo.category] && CATEGORIES[todo.category].icon) || '•'}</span>
+                            <span class="text-sm">${(CATEGORIES[todo.category] && CATEGORIES[todo.category].icon) || ' '}</span>
                             ${t[todo.category] || todo.category}
                         </p>
                     </div>
@@ -1427,3 +1471,60 @@ window.toggleTodo = toggleTodo;
 window.deleteTodo = deleteTodo;
 
 // ... END SKELETON ...
+
+// --- Reminder System ---
+function startReminderService() {
+    setInterval(() => {
+        const now = Date.now();
+        let needsSave = false;
+
+        if (!state.todos) return;
+
+        state.todos.forEach(todo => {
+            if (!todo.completed && todo.reminderTime && !todo.reminded) {
+                if (now >= todo.reminderTime) {
+                    triggerNotification(todo.text);
+                    todo.reminded = true;
+                    needsSave = true;
+                }
+            }
+        });
+
+        if (needsSave) {
+            saveLocalData();
+            render();
+        }
+    }, 10000); // Check every 10 seconds
+}
+
+function triggerNotification(taskText) {
+    // 1. Play Sound
+    try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.play().catch(() => {});
+    } catch(e) {}
+
+    // 2. Browser Notification
+    if (Notification.permission === 'granted') {
+        new Notification('B-Task ?? Reminder', {
+            body: It's time for:  + taskText,
+            icon: 'logo.png'
+        });
+    } else {
+        // 3. Fallback Toast
+        showToast(?? Reminder:  + taskText);
+    }
+}
+
+function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-2xl z-[100] animate-in slide-in-from-top flex items-center gap-2 font-bold';
+    toast.innerHTML = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, -20px)';
+        toast.style.transition = 'all 0.5s ease';
+        setTimeout(() => toast.remove(), 500);
+    }, 5000);
+}
