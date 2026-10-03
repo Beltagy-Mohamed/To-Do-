@@ -552,7 +552,7 @@ function repairState() {
         state.selectedCategory = 'Essence';
     }
     // Force valid viewMode if stuck
-    if (!['Daily', 'Weekly', 'Athkar', 'Tasbih', 'Kahf'].includes(state.viewMode)) {
+    if (!['Daily', 'Weekly', 'Athkar', 'Tasbih', 'Kahf', 'Mushaf'].includes(state.viewMode)) {
         state.viewMode = 'Daily';
     }
     saveLocalData();
@@ -676,7 +676,7 @@ window.addTodo = async () => {
     });
 
     // Auto-switch to rendering tasks if we are in a different mode
-    if (state.viewMode === 'Athkar' || state.viewMode === 'Tasbih' || state.viewMode === 'Kahf') {
+    if (state.viewMode === 'Athkar' || state.viewMode === 'Tasbih' || state.viewMode === 'Kahf' || state.viewMode === 'Mushaf') {
         state.viewMode = 'Daily';
         switchView('Daily'); // Updates UI buttons
     }
@@ -720,16 +720,24 @@ window.switchView = (mode) => {
         'Weekly': 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20',
         'Athkar': 'bg-sky-500 text-white shadow-lg shadow-sky-500/20',
         'Tasbih': 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20',
-        'Kahf': 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
+        'Kahf': 'bg-amber-500 text-white shadow-lg shadow-amber-500/20',
+        'Mushaf': 'bg-teal-500 text-white shadow-lg shadow-teal-500/20'
     };
-    ['Daily', 'Weekly', 'Athkar', 'Tasbih', 'Kahf'].forEach(v => {
+    ['Daily', 'Weekly', 'Athkar', 'Tasbih', 'Kahf', 'Mushaf'].forEach(v => {
         const btn = document.getElementById(`btn-${v.toLowerCase()}`);
         if (btn) {
             btn.className = v === mode
-                ? `px-5 py-1.5 rounded-lg text-xs font-medium transition-all ${VIEW_COLORS[v] || VIEW_COLORS['Daily']}`
-                : `px-5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white`;
+                ? `shrink-0 px-5 py-1.5 rounded-lg text-xs font-medium transition-all ${VIEW_COLORS[v] || VIEW_COLORS['Daily']}`
+                : `shrink-0 px-5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white`;
         }
     });
+    
+    // Stop audio if leaving Mushaf view
+    if (mode !== 'Mushaf' && typeof mushafAudio !== 'undefined' && mushafAudio) {
+        mushafAudio.pause();
+        mushafPlaying = false;
+    }
+    
     render();
 };
 
@@ -801,6 +809,7 @@ function render() {
         if (state.viewMode === 'Athkar') { renderAthkar(list); return; }
         if (state.viewMode === 'Tasbih') { renderTasbih(list); return; }
         if (state.viewMode === 'Kahf') { renderKahf(list); return; }
+        if (state.viewMode === 'Mushaf') { renderMushaf(list); return; }
 
         // Filter by View Mode (Daily/Weekly)
         let filtered = state.todos.filter(t => t.viewMode === state.viewMode);
@@ -1028,44 +1037,6 @@ function renderKahf(list) {
     list.className = "w-full pb-32";
     const t = TRANSLATIONS[state.language];
 
-    // --- Khatmah Feature ---
-    const khatmahEl = document.createElement('div');
-    khatmahEl.className = `relative overflow-hidden rounded-3xl p-6 md:p-10 border border-slate-700/50 bg-[#1e293b] shadow-2xl mb-8`;
-    
-    const khatmahPage = (state.ibadah && state.ibadah.khatmah) ? state.ibadah.khatmah : 0;
-    const khatmahProgress = ((khatmahPage / 604) * 100).toFixed(1);
-
-    khatmahEl.innerHTML = `
-        <div class="text-center mb-6">
-            <h2 class="text-3xl md:text-4xl font-bold text-slate-100 mb-2 tracking-wide flex items-center justify-center gap-3">
-                <i data-lucide="book-open" class="text-emerald-400 w-8 h-8"></i>
-                الختمة القرآنية
-            </h2>
-            <p class="text-slate-400">تابع تقدمك في قراءة القرآن الكريم</p>
-        </div>
-        
-        <div class="max-w-md mx-auto">
-            <div class="flex justify-between text-slate-300 mb-2 font-bold text-sm">
-                <span>الصفحة ${khatmahPage}</span>
-                <span>604 صفحة</span>
-            </div>
-            
-            <div class="w-full bg-slate-800 rounded-full h-4 mb-6 overflow-hidden border border-slate-700">
-                <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-4 rounded-full transition-all duration-1000" style="width: ${khatmahProgress}%"></div>
-            </div>
-            
-            <div class="flex items-center gap-4 justify-center bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
-                <label class="text-slate-300 font-bold whitespace-nowrap text-sm">الصفحة الحالية:</label>
-                <input type="number" min="0" max="604" value="${khatmahPage}" 
-                    class="w-20 bg-slate-900 border border-slate-600 rounded-lg p-2 text-white text-center focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                    onchange="updateKhatmahProgress(this.value)">
-                <button onclick="updateKhatmahProgress(${khatmahPage + 1})" class="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors flex items-center justify-center">
-                    <i data-lucide="plus" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </div>
-    `;
-    list.appendChild(khatmahEl);
 
     // --- Kahf Feature ---
     // Card Container - Matching the deep blue/navy aesthetic from the image
@@ -1580,3 +1551,206 @@ window.updateKhatmahProgress = (val) => {
     saveLocalData();
     render();
 };
+let currentMushafPage = 1;
+let mushafAudio = null;
+let mushafPlaying = false;
+let mushafCache = {};
+
+function renderMushaf(list) {
+    list.innerHTML = '';
+    list.className = "w-full pb-32";
+    
+    // Check local storage for saved page
+    if (state.ibadah && state.ibadah.khatmah) {
+        currentMushafPage = state.ibadah.khatmah || 1;
+    }
+
+    const container = document.createElement('div');
+    container.className = 'relative overflow-hidden rounded-3xl p-4 md:p-10 border border-slate-700/50 bg-[#f8f9fa] dark:bg-[#0f172a] shadow-2xl mb-8 min-h-[600px] flex flex-col transition-colors duration-500';
+    container.id = 'mushaf-container';
+    
+    container.innerHTML = 
+        <div class="flex items-center justify-between border-b border-slate-300 dark:border-slate-700 pb-4 mb-6">
+            <div class="text-slate-800 dark:text-slate-200 font-bold text-lg md:text-xl font-amiri" id="mushaf-surah-name">???? ???????...</div>
+            <div class="text-slate-600 dark:text-slate-400 text-sm md:text-base font-amiri" id="mushaf-juz-name"></div>
+        </div>
+        
+        <div id="mushaf-text" class="flex-1 text-center leading-loose text-slate-900 dark:text-slate-100 font-amiri text-2xl md:text-4xl" dir="rtl" style="line-height: 2.2;">
+            <div class="animate-pulse flex space-x-4 justify-center items-center h-full">
+                <i data-lucide="loader" class="w-8 h-8 animate-spin text-emerald-500"></i>
+            </div>
+        </div>
+        
+        <!-- Tafsir Bottom Sheet (Hidden) -->
+        <div id="tafsir-sheet" class="hidden absolute bottom-20 left-4 right-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-2xl z-50 transform transition-transform">
+            <div class="flex justify-between items-center mb-2 border-b border-slate-100 dark:border-slate-700 pb-2">
+                <span class="font-bold text-indigo-600 dark:text-indigo-400">??????? ??????</span>
+                <button onclick="document.getElementById('tafsir-sheet').classList.add('hidden')" class="text-slate-400 hover:text-red-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div id="tafsir-text" class="text-slate-700 dark:text-slate-300 text-sm md:text-base leading-relaxed text-justify" dir="rtl"></div>
+        </div>
+
+        <div class="mt-8 pt-4 border-t border-slate-300 dark:border-slate-700 flex items-center justify-between gap-4">
+            <button onclick="changeMushafPage(1)" class="p-2 md:p-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full transition-all">
+                <i data-lucide="chevron-right" class="w-6 h-6 text-slate-600 dark:text-slate-300"></i>
+            </button>
+            
+            <div class="flex items-center gap-2 md:gap-4">
+                <button onclick="toggleMushafAudio()" id="btn-mushaf-audio" class="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all">
+                    <i data-lucide="play" class="w-6 h-6 fill-current"></i>
+                </button>
+                <div class="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold text-slate-700 dark:text-slate-300">
+                    <span id="mushaf-page-number">\</span>
+                </div>
+            </div>
+            
+            <button onclick="changeMushafPage(-1)" class="p-2 md:p-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full transition-all">
+                <i data-lucide="chevron-left" class="w-6 h-6 text-slate-600 dark:text-slate-300"></i>
+            </button>
+        </div>
+    ;
+    list.appendChild(container);
+    if (window.lucide) lucide.createIcons();
+    
+    fetchMushafPage(currentMushafPage);
+}
+
+window.changeMushafPage = (delta) => {
+    let newPage = currentMushafPage + delta;
+    if (newPage < 1) newPage = 1;
+    if (newPage > 604) newPage = 604;
+    
+    currentMushafPage = newPage;
+    document.getElementById('mushaf-page-number').innerText = currentMushafPage;
+    
+    // Save to Khatmah state
+    if (!state.ibadah) state.ibadah = {};
+    state.ibadah.khatmah = currentMushafPage;
+    saveLocalData();
+    
+    if (mushafAudio) {
+        mushafAudio.pause();
+        mushafPlaying = false;
+        document.getElementById('btn-mushaf-audio').innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
+        if (window.lucide) lucide.createIcons();
+    }
+    
+    fetchMushafPage(currentMushafPage);
+};
+
+window.toggleMushafAudio = async () => {
+    const btn = document.getElementById('btn-mushaf-audio');
+    if (mushafPlaying && mushafAudio) {
+        mushafAudio.pause();
+        mushafPlaying = false;
+        btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
+    } else {
+        // We will just play the page audio sequentially
+        btn.innerHTML = '<i data-lucide="loader" class="w-6 h-6 animate-spin"></i>';
+        if (window.lucide) lucide.createIcons();
+        
+        try {
+            const res = await fetch(\https://api.alquran.cloud/v1/page/\/ar.alafasy\);
+            const data = await res.json();
+            const ayahs = data.data.ayahs;
+            
+            let currentAyahIndex = 0;
+            
+            const playNext = () => {
+                if (currentAyahIndex >= ayahs.length) {
+                    mushafPlaying = false;
+                    btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
+                    if (window.lucide) lucide.createIcons();
+                    return;
+                }
+                
+                // Highlight text
+                document.querySelectorAll('.ayah-text').forEach(el => el.classList.remove('ayah-active', 'text-emerald-600', 'dark:text-emerald-400'));
+                const currentEl = document.getElementById(\yah-\\);
+                if (currentEl) {
+                    currentEl.classList.add('ayah-active', 'text-emerald-600', 'dark:text-emerald-400');
+                    currentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
+                mushafAudio = new Audio(ayahs[currentAyahIndex].audio);
+                mushafAudio.play();
+                mushafAudio.onended = () => {
+                    currentAyahIndex++;
+                    playNext();
+                };
+            };
+            
+            mushafPlaying = true;
+            btn.innerHTML = '<i data-lucide="pause" class="w-6 h-6 fill-current"></i>';
+            if (window.lucide) lucide.createIcons();
+            playNext();
+            
+        } catch (e) {
+            console.error('Audio failed', e);
+            btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+};
+
+window.showTafsir = async (ayahNumber) => {
+    const sheet = document.getElementById('tafsir-sheet');
+    const textEl = document.getElementById('tafsir-text');
+    sheet.classList.remove('hidden');
+    textEl.innerHTML = '<div class="flex justify-center"><i data-lucide="loader" class="animate-spin text-indigo-500"></i></div>';
+    if (window.lucide) lucide.createIcons();
+    
+    try {
+        const res = await fetch(\https://api.alquran.cloud/v1/ayah/\/ar.muyassar\);
+        const data = await res.json();
+        textEl.innerText = data.data.text;
+    } catch (e) {
+        textEl.innerText = '?????? ??? ????? ???????. ???? ?? ??????? ?????????.';
+    }
+};
+
+function toArabicNumber(n) {
+    const digits = ['?','?','?','?','?','?','?','?','?','?'];
+    return n.toString().split('').map(d => digits[d]).join('');
+}
+
+async function fetchMushafPage(page) {
+    const textContainer = document.getElementById('mushaf-text');
+    const surahNameEl = document.getElementById('mushaf-surah-name');
+    const juzNameEl = document.getElementById('mushaf-juz-name');
+    
+    textContainer.innerHTML = '<div class="animate-pulse flex justify-center items-center h-full"><i data-lucide="loader" class="w-8 h-8 animate-spin text-emerald-500"></i></div>';
+    if (window.lucide) lucide.createIcons();
+    
+    try {
+        let ayahs = [];
+        if (mushafCache[page]) {
+            ayahs = mushafCache[page];
+        } else {
+            const res = await fetch(\https://api.alquran.cloud/v1/page/\/quran-uthmani\);
+            const data = await res.json();
+            ayahs = data.data.ayahs;
+            mushafCache[page] = ayahs;
+        }
+        
+        surahNameEl.innerText = ayahs[0].surah.name;
+        juzNameEl.innerText = '????? ' + toArabicNumber(ayahs[0].juz);
+        
+        let html = '';
+        // If it's a new Surah, we should show the Basmala, but the API includes it in Ayah 1 mostly.
+        ayahs.forEach(ayah => {
+            // Remove Bismillah from text if it's not Fatiha and it's ayah 1
+            let text = ayah.text;
+            if (ayah.numberInSurah === 1 && ayah.surah.number !== 1 && ayah.surah.number !== 9) {
+                text = text.replace('?????? ??????? ???????????? ??????????', '');
+                html += \<div class="w-full text-center text-xl md:text-2xl text-emerald-600 dark:text-emerald-400 my-4 font-amiri">?????? ??????? ???????????? ??????????</div>\;
+            }
+            html += \<span id="ayah-\" class="ayah-text cursor-pointer transition-colors duration-300 hover:text-indigo-500" onclick="showTafsir(\)">\ <span class="ayah-number font-sans">\u06DD\</span> </span>\;
+        });
+        
+        textContainer.innerHTML = html;
+        
+    } catch (e) {
+        textContainer.innerHTML = '<div class="text-red-500 text-sm">??? ?? ??????? ???????. ???? ???????? ??????.</div>';
+    }
+}
