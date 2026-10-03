@@ -523,7 +523,7 @@ let state = {
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Load Data
-    console.log("APP VERSION: REMOVED PERSONAL & ADJUSTED DARK MODE");
+
     loadLocalData();
 
     // 2. Setup Events
@@ -543,91 +543,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initCategoryDock();
     initAmbientVisuals();
 
-    // 6. External Integrations (Gmail Assistant)
-    handleExternalActions();
-    setupMessageListener();
 });
-
-function handleExternalActions() {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('action') === 'add') {
-        const title = params.get('title');
-        const cat = params.get('cat') || 'Essence';
-        const info = params.get('info'); // Email metadata
-        const emailId = params.get('emailId'); // Gmail email ID
-
-        if (title) {
-            // Store email info separately, not in main text
-            let emailNote = null;
-            if (info) {
-                emailNote = decodeURIComponent(info);
-                if (emailId) {
-                    emailNote += `\n🔗 Email ID: ${emailId}`;
-                }
-            }
-
-            // Add task with clean title + hidden email metadata
-            state.todos.unshift({
-                id: Date.now().toString(),
-                text: decodeURIComponent(title), // Clean title only
-                completed: false,
-                category: CATEGORIES[cat] ? cat : 'Essence',
-                colorClass: CATEGORIES[cat]?.color || CATEGORIES['Essence'].color,
-                viewMode: 'Daily',
-                createdAt: new Date(),
-                emailNote: emailNote // Store email reference separately
-            });
-            saveLocalData();
-            render();
-            updateStats();
-
-            // Clean URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }
-    }
-}
-
-function setupMessageListener() {
-    window.addEventListener('message', (event) => {
-        // Security: verify origin (adjust if needed)
-        if (event.origin !== 'http://localhost:3000' &&
-            !event.origin.includes('github.io') &&
-            !event.origin.startsWith('file://')) {
-            return;
-        }
-
-        if (event.data.action === 'addTask') {
-            const { title, category, emailMeta } = event.data;
-
-            // Build email reference note
-            let emailNote = '';
-            if (emailMeta) {
-                emailNote = `\n\n📧 من: ${emailMeta.subject}\n👤 ${emailMeta.sender}`;
-            }
-
-            // Add task with email metadata
-            state.todos.unshift({
-                id: Date.now().toString(),
-                text: title + emailNote,
-                completed: false,
-                category: CATEGORIES[category] ? category : 'Essence',
-                colorClass: CATEGORIES[category]?.color || CATEGORIES['Essence'].color,
-                viewMode: 'Daily',
-                createdAt: new Date(),
-                emailMeta: emailMeta // Store full metadata
-            });
-
-            saveLocalData();
-            render();
-            updateStats();
-        }
-    });
-}
-
 function repairState() {
     // Force valid category
     if (!CATEGORIES[state.selectedCategory] && state.selectedCategory !== 'All') {
-        console.warn('Invalid category found, resetting to Essence');
+
         state.selectedCategory = 'Essence';
     }
     // Force valid viewMode if stuck
@@ -642,7 +562,7 @@ function loadLocalData() {
         const todosRaw = localStorage.getItem('beltagy_todos');
         state.todos = todosRaw ? JSON.parse(todosRaw) : [];
     } catch (e) {
-        console.error('Corrupt todos', e);
+
         state.todos = [];
     }
 
@@ -651,7 +571,7 @@ function loadLocalData() {
         const prefs = prefsRaw ? JSON.parse(prefsRaw) : {};
         if (prefs.appName) state.appName = prefs.appName;
         if (prefs.selectedCategory) state.selectedCategory = prefs.selectedCategory;
-    } catch (e) { console.error('Corrupt prefs', e); }
+    } catch (e) {  }
 
     try {
         const ibadahRaw = localStorage.getItem('beltagy_ibadah');
@@ -836,7 +756,7 @@ function setLanguage(lang) {
 
 function render() {
     try {
-        console.log('Rendering...');
+
         const list = document.getElementById('todo-list');
         list.innerHTML = '';
         const t = TRANSLATIONS[state.language];
@@ -960,7 +880,7 @@ function render() {
             if (window.lucide) lucide.createIcons();
         }
     } catch (e) {
-        console.error('Render Crash:', e);
+
         window.lastError = e.toString();
     }
 }
@@ -1152,17 +1072,17 @@ function initAmbientVisuals() {
         container.appendChild(el);
     }
     if (window.lucide && typeof lucide.createIcons === 'function') {
-        try { lucide.createIcons(); } catch (e) { console.warn('Lucide icons failed', e); }
+        try { lucide.createIcons(); } catch (e) {  }
     }
 }
 
 function setCategory(cat) {
-    console.log('setCategory called:', cat);
+
     state.selectedCategory = cat;
     initCategoryDock();
     saveLocalData();
     render();
-    console.log('setCategory finished, render called');
+
 }
 
 function initCategoryDock() {
@@ -1211,7 +1131,7 @@ function initCategoryDock() {
             dock.appendChild(btn);
         });
     } catch (e) {
-        console.error('Dock Error', e);
+
         // Fallback: simpler render if complex one fails
         try {
             const dock = document.getElementById('category-dock');
@@ -1377,36 +1297,6 @@ function updateStats() {
         });
     }
 
-    // Gamified Liquid Background Update (Disabled for Galaxy)
-    // updateLiquidBackground(total, completed.length);
-}
-
-function updateLiquidBackground(total, completed) {
-    const water = document.getElementById('water-container');
-    if (!water) return;
-
-    if (total === 0) {
-        water.style.height = '5%';
-        water.style.background = 'linear-gradient(0deg, #020024 0%, #090979 35%, #00d4ff 100%)';
-        return;
-    }
-
-    const percentage = (completed / total) * 100;
-    // Minimum 5% to show some water, Max 100%
-    const height = Math.max(5, percentage);
-    water.style.height = `${height}%`;
-
-    // Dynamic Color Shift
-    // 0-33%: Deep Blue
-    // 34-66%: Mid Blue
-    // 67-100%: Bright Cyan (Sunrise)
-    if (percentage < 33) {
-        water.style.background = 'linear-gradient(0deg, #020024 0%, #090979 100%)';
-    } else if (percentage < 66) {
-        water.style.background = 'linear-gradient(0deg, #0f172a 0%, #0ea5e9 100%)';
-    } else {
-        water.style.background = 'linear-gradient(0deg, #0891b2 0%, #22d3ee 100%)';
-    }
 }
 
 window.setChartRange = (range) => {
