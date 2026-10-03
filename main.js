@@ -1028,6 +1028,46 @@ function renderKahf(list) {
     list.className = "w-full pb-32";
     const t = TRANSLATIONS[state.language];
 
+    // --- Khatmah Feature ---
+    const khatmahEl = document.createElement('div');
+    khatmahEl.className = `relative overflow-hidden rounded-3xl p-6 md:p-10 border border-slate-700/50 bg-[#1e293b] shadow-2xl mb-8`;
+    
+    const khatmahPage = (state.ibadah && state.ibadah.khatmah) ? state.ibadah.khatmah : 0;
+    const khatmahProgress = ((khatmahPage / 604) * 100).toFixed(1);
+
+    khatmahEl.innerHTML = `
+        <div class="text-center mb-6">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-100 mb-2 tracking-wide flex items-center justify-center gap-3">
+                <i data-lucide="book-open" class="text-emerald-400 w-8 h-8"></i>
+                الختمة القرآنية
+            </h2>
+            <p class="text-slate-400">تابع تقدمك في قراءة القرآن الكريم</p>
+        </div>
+        
+        <div class="max-w-md mx-auto">
+            <div class="flex justify-between text-slate-300 mb-2 font-bold text-sm">
+                <span>الصفحة ${khatmahPage}</span>
+                <span>604 صفحة</span>
+            </div>
+            
+            <div class="w-full bg-slate-800 rounded-full h-4 mb-6 overflow-hidden border border-slate-700">
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-4 rounded-full transition-all duration-1000" style="width: ${khatmahProgress}%"></div>
+            </div>
+            
+            <div class="flex items-center gap-4 justify-center bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+                <label class="text-slate-300 font-bold whitespace-nowrap text-sm">الصفحة الحالية:</label>
+                <input type="number" min="0" max="604" value="${khatmahPage}" 
+                    class="w-20 bg-slate-900 border border-slate-600 rounded-lg p-2 text-white text-center focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    onchange="updateKhatmahProgress(this.value)">
+                <button onclick="updateKhatmahProgress(${khatmahPage + 1})" class="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors flex items-center justify-center">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    list.appendChild(khatmahEl);
+
+    // --- Kahf Feature ---
     // Card Container - Matching the deep blue/navy aesthetic from the image
     const el = document.createElement('div');
     el.className = `relative overflow-hidden rounded-3xl p-6 md:p-10 border border-slate-700/50 bg-[#1e293b] shadow-2xl`; // Slate-800 hex for consistency
@@ -1092,7 +1132,8 @@ function initAmbientVisuals() {
     // Abstract, sophisticated shapes
     const SHAPES = ['hexagon', 'circle', 'triangle', 'diamond', 'sparkles', 'zap', 'star'];
 
-    for (let i = 0; i < 20; i++) {
+    // Reduce amount from 20 to 5 for major mobile performance boost
+    for (let i = 0; i < 5; i++) {
         const el = document.createElement('div');
         const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
 
@@ -1105,7 +1146,8 @@ function initAmbientVisuals() {
         const delay = Math.random() * 10;
         const left = Math.random() * 100;
 
-        el.className = 'absolute text-indigo-500/10 dark:text-white/5 pointer-events-none filter blur-[1px] mix-blend-overlay';
+        // REMOVED: filter blur-[1px] mix-blend-overlay because it is extremely slow on mobile browsers
+        el.className = 'absolute text-indigo-500/5 dark:text-white/5 pointer-events-none opacity-50';
         el.style.left = `${left}%`;
         el.style.bottom = '-10%';
         el.style.width = `${size}px`;
@@ -1505,14 +1547,14 @@ function triggerNotification(taskText) {
     } catch(e) {}
 
     // 2. Browser Notification
-    if (Notification.permission === 'granted') {
-        new Notification('B-Task ?? Reminder', {
-            body: It's time for:  + taskText,
+    if (window.Notification && Notification.permission === 'granted') {
+        new Notification('تذكير بمهمتك 🚀', {
+            body: 'حان الآن وقت: ' + taskText,
             icon: 'logo.png'
         });
     } else {
         // 3. Fallback Toast
-        showToast(?? Reminder:  + taskText);
+        showToast('🔔 تذكير: ' + taskText);
     }
 }
 
@@ -1528,3 +1570,13 @@ function showToast(msg) {
         setTimeout(() => toast.remove(), 500);
     }, 5000);
 }
+window.updateKhatmahProgress = (val) => {
+    let page = parseInt(val);
+    if (isNaN(page)) return;
+    if (page < 0) page = 0;
+    if (page > 604) page = 604;
+    if (!state.ibadah) state.ibadah = {};
+    state.ibadah.khatmah = page;
+    saveLocalData();
+    render();
+};

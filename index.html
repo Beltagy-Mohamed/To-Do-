@@ -110,20 +110,20 @@
                 class="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 via-purple-500 to-pink-500 rounded-2xl opacity-30 group-hover:opacity-60 transition duration-500 blur">
             </div>
             <div
-                class="relative flex items-center bg-white dark:bg-slate-800 rounded-xl p-2 border border-slate-200 dark:border-white/10 shadow-2xl transition-colors duration-300">
+                class="relative flex items-center bg-white dark:bg-slate-800 rounded-xl p-1 md:p-2 border border-slate-200 dark:border-white/10 shadow-2xl transition-colors duration-300">
                 <input type="text" id="todo-input"
-                    class="flex-1 bg-transparent border-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-0 focus:outline-none h-14 px-4 text-xl"
+                    class="flex-1 w-full min-w-0 bg-transparent border-none text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-0 focus:outline-none h-12 md:h-14 px-2 md:px-4 text-base md:text-xl"
                     placeholder="What's your next win?" onkeydown="handleInputKey(event)">
                 
                 <button onclick="toggleReminderPanel()" 
-                    class="p-4 mr-2 text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors rounded-lg" 
+                    class="p-2 md:p-4 mr-1 md:mr-2 text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors rounded-lg flex-shrink-0" 
                     title="Set Reminder">
-                    <i data-lucide="bell" id="bell-icon" class="w-6 h-6"></i>
+                    <i data-lucide="bell" id="bell-icon" class="w-5 h-5 md:w-6 md:h-6"></i>
                 </button>
 
                 <button onclick="addTodo()"
-                    class="p-4 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors shrink-0 shadow-lg shadow-indigo-500/30">
-                    <i data-lucide="plus" class="w-6 h-6"></i>
+                    class="p-2 md:p-4 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors shrink-0 shadow-lg shadow-indigo-500/30 flex-shrink-0">
+                    <i data-lucide="plus" class="w-5 h-5 md:w-6 md:h-6"></i>
                 </button>
             </div>
             
