@@ -1490,6 +1490,25 @@ function startReminderService() {
     setInterval(() => {
         const now = Date.now();
         let needsSave = false;
+        
+        // Khatmah Check
+        if (state.ibadah && state.ibadah.khatmahDaily) {
+            const ks = state.ibadah.khatmahDaily;
+            if (ks.time && ks.target && ks.target > 0) {
+                const today = new Date().toISOString().split('T')[0];
+                if (ks.date !== today || ks.read < ks.target) {
+                    const [h, m] = ks.time.split(':');
+                    const d = new Date();
+                    if (d.getHours() === parseInt(h) && d.getMinutes() === parseInt(m)) {
+                        if (ks.lastReminded !== today + '_' + ks.time) {
+                            triggerNotification('حان وقت ورد الختمة! 📖');
+                            ks.lastReminded = today + '_' + ks.time;
+                            needsSave = true;
+                        }
+                    }
+                }
+            }
+        }
 
         if (!state.todos) return;
 
@@ -1556,6 +1575,71 @@ let mushafAudio = null;
 let mushafPlaying = false;
 let mushafCache = {};
 
+let surahListCache = null;
+function initSurahList() {
+    if (surahListCache) return;
+    surahListCache = [];
+    let currentSurah = 0;
+    for (let p = 1; p <= 604; p++) {
+        const ayahs = QURAN_PAGES[p];
+        if (ayahs && ayahs.length > 0) {
+            ayahs.forEach(ayah => {
+                if (ayah.surah.number !== currentSurah) {
+                    currentSurah = ayah.surah.number;
+                    surahListCache.push({ number: currentSurah, name: ayah.surah.name, page: p });
+                }
+            });
+        }
+    }
+}
+
+window.jumpToSurah = (page) => {
+    let newPage = parseInt(page);
+    let delta = newPage - currentMushafPage;
+    changeMushafPage(delta);
+};
+
+window.saveKhatmahSettings = () => {
+    if (!state.ibadah) state.ibadah = {};
+    if (!state.ibadah.khatmahDaily) state.ibadah.khatmahDaily = { read: 0, date: new Date().toISOString().split('T')[0], readPages: [] };
+    
+    const target = document.getElementById('khatmah-target').value;
+    const time = document.getElementById('khatmah-time').value;
+    
+    state.ibadah.khatmahDaily.target = parseInt(target) || 0;
+    state.ibadah.khatmahDaily.time = time;
+    saveLocalData();
+    updateKhatmahUI();
+};
+
+function updateKhatmahUI() {
+    if (!state.ibadah || !state.ibadah.khatmahDaily) return;
+    const ks = state.ibadah.khatmahDaily;
+    const targetEl = document.getElementById('khatmah-target');
+    const timeEl = document.getElementById('khatmah-time');
+    const progressEl = document.getElementById('khatmah-progress');
+    const statusEl = document.getElementById('khatmah-status');
+    
+    if (targetEl && !targetEl.value) targetEl.value = ks.target || '';
+    if (timeEl && !timeEl.value) timeEl.value = ks.time || '';
+    
+    const today = new Date().toISOString().split('T')[0];
+    if (ks.date !== today) {
+        ks.date = today;
+        ks.read = 0;
+        ks.readPages = [];
+        saveLocalData();
+    }
+    
+    if (progressEl && statusEl) {
+        const target = ks.target || 0;
+        const read = ks.read || 0;
+        const pct = target > 0 ? Math.min(100, (read / target) * 100) : 0;
+        progressEl.style.width = `${pct}%`;
+        statusEl.innerText = `${read} / ${target} صفحة اليوم`;
+    }
+}
+
 function renderMushaf(list) {
     list.innerHTML = '';
     list.className = "w-full pb-32";
@@ -1570,8 +1654,32 @@ function renderMushaf(list) {
     container.id = 'mushaf-container';
     
     container.innerHTML = `
+        <!-- Khatmah Tracker -->
+        <div class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl mb-6 border border-indigo-100 dark:border-indigo-800/30 flex flex-col gap-3">
+            <div class="flex justify-between items-center cursor-pointer" onclick="document.getElementById('khatmah-settings').classList.toggle('hidden')">
+                <span class="font-bold text-indigo-700 dark:text-indigo-400 font-arabic flex items-center gap-2"><i data-lucide="book-open" class="w-5 h-5"></i> ورد الختمة اليومي</span>
+                <i data-lucide="settings" class="w-5 h-5 text-indigo-500"></i>
+            </div>
+            <div id="khatmah-settings" class="hidden flex flex-col gap-2 mt-2">
+                <div class="flex gap-2 items-center">
+                    <label class="text-sm font-arabic w-1/3">الهدف (صفحات):</label>
+                    <input type="number" id="khatmah-target" class="flex-1 p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white" onchange="saveKhatmahSettings()" min="1">
+                </div>
+                <div class="flex gap-2 items-center">
+                    <label class="text-sm font-arabic w-1/3">وقت التذكير:</label>
+                    <input type="time" id="khatmah-time" class="flex-1 p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white" onchange="saveKhatmahSettings()">
+                </div>
+            </div>
+            <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full mt-2 overflow-hidden">
+                <div id="khatmah-progress" class="bg-indigo-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <div class="text-xs text-center text-slate-500 font-arabic" id="khatmah-status">0 / 0 صفحة اليوم</div>
+        </div>
+
         <div class="flex items-center justify-between border-b border-slate-300 dark:border-slate-700 pb-4 mb-6">
-            <div class="text-slate-800 dark:text-slate-200 font-bold text-lg md:text-xl font-amiri" id="mushaf-surah-name">جاري التحميل...</div>
+            <select id="mushaf-surah-select" class="text-slate-800 dark:text-slate-200 font-bold text-lg md:text-xl font-amiri bg-transparent border-none outline-none cursor-pointer appearance-none text-right" onchange="window.jumpToSurah(this.value)">
+                <option value="">جاري التحميل...</option>
+            </select>
             <div class="text-slate-600 dark:text-slate-400 text-sm md:text-base font-amiri" id="mushaf-juz-name"></div>
         </div>
         
@@ -1584,27 +1692,27 @@ function renderMushaf(list) {
         <!-- Tafsir Bottom Sheet (Hidden) -->
         <div id="tafsir-sheet" class="hidden absolute bottom-20 left-4 right-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-2xl z-50 transform transition-transform">
             <div class="flex justify-between items-center mb-2 border-b border-slate-100 dark:border-slate-700 pb-2">
-                <span class="font-bold text-indigo-600 dark:text-indigo-400">التفسير الميسر</span>
-                <button onclick="document.getElementById('tafsir-sheet').classList.add('hidden')" class="text-slate-400 hover:text-red-500"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <span class="font-bold text-indigo-600 dark:text-indigo-400 font-arabic">التفسير الميسر / معاني الكلمات</span>
+                <button onclick="document.getElementById('tafsir-sheet').classList.add('hidden')" class="text-slate-400 hover:text-red-500 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <div id="tafsir-text" class="text-slate-700 dark:text-slate-300 text-sm md:text-base leading-relaxed text-justify" dir="rtl"></div>
+            <div id="tafsir-text" class="text-slate-700 dark:text-slate-300 text-sm md:text-base leading-relaxed text-justify font-arabic max-h-64 overflow-y-auto" dir="rtl"></div>
         </div>
 
         <div class="mt-8 pt-4 border-t border-slate-300 dark:border-slate-700 flex items-center justify-between gap-4">
-            <button onclick="changeMushafPage(1)" class="p-2 md:p-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full transition-all">
+            <button onclick="changeMushafPage(1)" class="p-2 md:p-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full transition-all shadow">
                 <i data-lucide="chevron-right" class="w-6 h-6 text-slate-600 dark:text-slate-300"></i>
             </button>
             
             <div class="flex items-center gap-2 md:gap-4">
-                <button onclick="toggleMushafAudio()" id="btn-mushaf-audio" class="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all">
+                <button onclick="toggleMushafAudio()" id="btn-mushaf-audio" class="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-all shadow">
                     <i data-lucide="play" class="w-6 h-6 fill-current"></i>
                 </button>
-                <div class="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold text-slate-700 dark:text-slate-300">
+                <div class="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl font-bold text-slate-700 dark:text-slate-300 shadow-inner">
                     <span id="mushaf-page-number">${currentMushafPage}</span>
                 </div>
             </div>
             
-            <button onclick="changeMushafPage(-1)" class="p-2 md:p-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full transition-all">
+            <button onclick="changeMushafPage(-1)" class="p-2 md:p-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-full transition-all shadow">
                 <i data-lucide="chevron-left" class="w-6 h-6 text-slate-600 dark:text-slate-300"></i>
             </button>
         </div>
@@ -1612,6 +1720,7 @@ function renderMushaf(list) {
     list.appendChild(container);
     if (window.lucide) lucide.createIcons();
     
+    updateKhatmahUI();
     fetchMushafPage(currentMushafPage);
 }
 
@@ -1621,17 +1730,37 @@ window.changeMushafPage = (delta) => {
     if (newPage > 604) newPage = 604;
     
     currentMushafPage = newPage;
-    document.getElementById('mushaf-page-number').innerText = currentMushafPage;
+    const pageNumEl = document.getElementById('mushaf-page-number');
+    if (pageNumEl) pageNumEl.innerText = currentMushafPage;
     
     // Save to Khatmah state
     if (!state.ibadah) state.ibadah = {};
     state.ibadah.khatmah = currentMushafPage;
+    
+    // Daily Tracker
+    if (state.ibadah.khatmahDaily) {
+        const ks = state.ibadah.khatmahDaily;
+        const today = new Date().toISOString().split('T')[0];
+        if (ks.date !== today) {
+            ks.date = today;
+            ks.read = 0;
+            ks.readPages = [];
+        }
+        if (!ks.readPages) ks.readPages = [];
+        if (!ks.readPages.includes(currentMushafPage)) {
+            ks.readPages.push(currentMushafPage);
+            ks.read = ks.readPages.length;
+        }
+    }
+    
     saveLocalData();
+    updateKhatmahUI();
     
     if (mushafAudio) {
         mushafAudio.pause();
         mushafPlaying = false;
-        document.getElementById('btn-mushaf-audio').innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
+        const btn = document.getElementById('btn-mushaf-audio');
+        if (btn) btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
         if (window.lucide) lucide.createIcons();
     }
     
@@ -1656,11 +1785,30 @@ window.toggleMushafAudio = async () => {
             
             let currentAyahIndex = 0;
             
+            const updatePlayBtn = () => {
+                const b = document.getElementById('btn-mushaf-audio');
+                if (b) {
+                    b.innerHTML = mushafPlaying ? '<i data-lucide="pause" class="w-6 h-6 fill-current"></i>' : '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
+                    if (window.lucide) lucide.createIcons();
+                }
+            };
+            
+            if (!mushafAudio) {
+                mushafAudio = document.createElement('audio');
+                mushafAudio.id = 'mushaf-audio-player';
+                mushafAudio.style.display = 'none';
+                mushafAudio.playsInline = true;
+                document.body.appendChild(mushafAudio);
+                mushafAudio.onended = () => {
+                    currentAyahIndex++;
+                    playNext();
+                };
+            }
+
             const playNext = () => {
                 if (currentAyahIndex >= ayahs.length) {
                     mushafPlaying = false;
-                    btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
-                    if (window.lucide) lucide.createIcons();
+                    updatePlayBtn();
                     return;
                 }
                 
@@ -1677,20 +1825,45 @@ window.toggleMushafAudio = async () => {
                 const ayahNum = String(ayah.numberInSurah).padStart(3, '0');
                 const audioUrl = `https://everyayah.com/data/Minshawy_Mujawwad_192kbps/${surahNum}${ayahNum}.mp3`;
                 
-                mushafAudio = new Audio(audioUrl);
+                mushafAudio.src = audioUrl;
+                
+                if ('mediaSession' in navigator) {
+                    let logoUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '/') + 'logo.png';
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: `سورة ${ayah.surah.name}`,
+                        artist: 'المنشاوي (مجود)',
+                        album: `الآية ${ayah.numberInSurah} - الصفحة ${currentMushafPage}`,
+                        artwork: [
+                            { src: logoUrl, sizes: '512x512', type: 'image/png' }
+                        ]
+                    });
+                    navigator.mediaSession.setActionHandler('play', () => { 
+                        mushafAudio.play(); 
+                        mushafPlaying = true; 
+                        updatePlayBtn(); 
+                    });
+                    navigator.mediaSession.setActionHandler('pause', () => { 
+                        mushafAudio.pause(); 
+                        mushafPlaying = false; 
+                        updatePlayBtn(); 
+                    });
+                    navigator.mediaSession.setActionHandler('nexttrack', () => {
+                        mushafAudio.pause();
+                        currentAyahIndex++;
+                        playNext();
+                    });
+                    navigator.mediaSession.setActionHandler('previoustrack', () => {
+                        mushafAudio.pause();
+                        currentAyahIndex = Math.max(0, currentAyahIndex - 1);
+                        playNext();
+                    });
+                }
+                
                 mushafAudio.play().catch(e => {
                     console.error("Audio play failed", e);
-                    // Skip to next if network fails on a specific file? Actually just stop or try next.
-                    // For now, if one fails, we stop.
                     mushafPlaying = false;
-                    btn.innerHTML = '<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
-                    if (window.lucide) lucide.createIcons();
+                    updatePlayBtn();
                 });
-                
-                mushafAudio.onended = () => {
-                    currentAyahIndex++;
-                    playNext();
-                };
             };
             
             mushafPlaying = true;
@@ -1733,17 +1906,70 @@ function toArabicNumber(n) {
     return n.toString().split('').map(d => digits[d]).join('');
 }
 
-function fetchMushafPage(page) {
-    const textContainer = document.getElementById('mushaf-text');
-    const surahNameEl = document.getElementById('mushaf-surah-name');
-    const juzNameEl = document.getElementById('mushaf-juz-name');
+window.showWordMeaning = async (event, wordText, surahNum, ayahInSurah, wordIdx) => {
+    event.stopPropagation();
+    const sheet = document.getElementById('tafsir-sheet');
+    const textEl = document.getElementById('tafsir-text');
+    sheet.classList.remove('hidden');
+    textEl.innerHTML = '<div class="flex justify-center"><i data-lucide="loader" class="animate-spin text-indigo-500"></i></div>';
+    if (window.lucide) lucide.createIcons();
     
     try {
-        // Load instantly from offline data (QURAN_PAGES)
+        const [verseRes, tafsirRes] = await Promise.all([
+            fetch(`https://api.quran.com/api/v4/verses/by_key/${surahNum}:${ayahInSurah}?words=true&word_fields=translation&language=ar`),
+            fetch(`https://api.quran.com/api/v4/tafsirs/16/by_ayah/${surahNum}:${ayahInSurah}`)
+        ]);
+        
+        const verseData = await verseRes.json();
+        const tafsirData = await tafsirRes.json();
+        
+        const stripTashkeel = s => s ? s.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, '') : '';
+        const clickedWordStrip = stripTashkeel(wordText);
+        
+        let wordsHtml = '<div class="flex flex-wrap gap-2 mb-4 justify-center" dir="rtl">';
+        if (verseData.verse && verseData.verse.words) {
+            verseData.verse.words.filter(w => w.char_type_name === 'word').forEach(w => {
+                const isClicked = stripTashkeel(w.text_uthmani) === clickedWordStrip;
+                const bg = isClicked ? 'bg-indigo-100 dark:bg-indigo-900/50 border-indigo-300' : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600';
+                wordsHtml += `<div class="flex flex-col items-center p-2 rounded border ${bg} text-center min-w-[60px]">
+                    <span class="font-bold text-slate-800 dark:text-slate-200 text-lg">${w.text_uthmani}</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 mt-1">${w.translation?.text || ''}</span>
+                </div>`;
+            });
+        }
+        wordsHtml += '</div>';
+        
+        let tafsirText = tafsirData.tafsir?.text?.replace(/<[^>]*>?/gm, '') || 'التفسير غير متوفر';
+        
+        textEl.innerHTML = `
+            ${wordsHtml}
+            <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+                <h4 class="font-bold text-indigo-600 dark:text-indigo-400 mb-2">تفسير الآية (الميسر):</h4>
+                <p class="text-sm md:text-base">${tafsirText}</p>
+            </div>
+        `;
+    } catch (e) {
+        textEl.innerText = 'عذراً، يتطلب اتصالاً بالإنترنت لجلب المعاني والتفسير.';
+    }
+};
+
+function fetchMushafPage(page) {
+    const textContainer = document.getElementById('mushaf-text');
+    const surahSelect = document.getElementById('mushaf-surah-select');
+    const juzNameEl = document.getElementById('mushaf-juz-name');
+    
+    initSurahList();
+    if (surahSelect && surahSelect.options.length <= 1) {
+        surahSelect.innerHTML = surahListCache.map(s => `<option value="${s.page}">${s.name}</option>`).join('');
+    }
+    
+    try {
         const ayahs = QURAN_PAGES[page];
         if (!ayahs || ayahs.length === 0) throw new Error("No data for page");
         
-        surahNameEl.innerText = ayahs[0].surah.name;
+        if (surahSelect) {
+            surahSelect.value = surahListCache.find(s => s.number === ayahs[0].surah.number)?.page || ayahs[0].page;
+        }
         juzNameEl.innerText = 'الجزء ' + toArabicNumber(ayahs[0].juz);
         
         let html = '';
@@ -1754,7 +1980,16 @@ function fetchMushafPage(page) {
                 text = text.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', ''); // Fallback
                 html += `<div class="w-full text-center text-xl md:text-2xl text-emerald-600 dark:text-emerald-400 my-4 font-amiri">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>`;
             }
-            html += `<span id="ayah-${ayah.number}" class="ayah-text cursor-pointer transition-colors duration-300 hover:text-indigo-500" onclick="showTafsir(${ayah.number}, ${ayah.surah.number}, ${ayah.numberInSurah})">${text} <span class="ayah-number font-sans">\u06DD${toArabicNumber(ayah.numberInSurah)}</span> </span>`;
+            
+            let wordsArray = text.split(' ').filter(w => w.trim() !== '');
+            let wordsHtml = wordsArray.map((word, wIdx) => {
+                return `<span class="hover:text-indigo-500 cursor-pointer transition-colors duration-200" onclick="showWordMeaning(event, '${word.replace(/'/g, "\\'")}', ${ayah.surah.number}, ${ayah.numberInSurah}, ${wIdx})">${word}</span>`;
+            }).join(' ');
+            
+            html += `<span id="ayah-${ayah.number}" class="ayah-text transition-colors duration-300">
+                ${wordsHtml}
+                <span class="ayah-number font-sans cursor-pointer hover:text-indigo-500 mx-1" onclick="showTafsir(${ayah.number}, ${ayah.surah.number}, ${ayah.numberInSurah})">\u06DD${toArabicNumber(ayah.numberInSurah)}</span> 
+            </span>`;
         });
         
         textContainer.innerHTML = html;
